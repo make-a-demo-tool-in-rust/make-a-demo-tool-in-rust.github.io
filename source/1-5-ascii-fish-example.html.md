@@ -8,7 +8,7 @@ title: 1.5 ASCII fish example
 
 This is the [examples/fish-jit.rs][example] example using our custom little JIT lib.
 
-[example]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/1-fish-in-a-jit/examples/fish-jit.rs
+[example]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/blob/master/1-fish-in-a-jit/examples/fish-jit.rs
 
 1. This takes the `YAML` file below,
 2. deserializes it into a `Dmo` struct,

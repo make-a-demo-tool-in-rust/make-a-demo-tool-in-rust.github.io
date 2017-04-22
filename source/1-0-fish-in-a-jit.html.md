@@ -37,9 +37,9 @@ TODO windows and Mac
 
 Also check out the [Assembly Tutorial](/assembly-tutorial.html) for a quick start on that.
 
-Follow along with the code in the [1-fish-in-a-jit][code] folder.
+Follow along with the code in the [1-fish-in-a-jit/src][code] folder.
 
-[code]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/1-fish-in-a-jit/
+[code]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/tree/master/1-fish-in-a-jit/src
 
 The code here will be only snippets to help the reading, this whole thing will
 make more sense if you have the sources open in a text editor or another browser
