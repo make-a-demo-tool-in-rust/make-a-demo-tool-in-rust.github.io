@@ -39,7 +39,7 @@ Also check out the [Assembly Tutorial](/assembly-tutorial.html) for a quick star
 
 Follow along with the code in the [1-fish-in-a-jit][code] folder.
 
-[code]: https://github.com/erethedaybreak/make-a-demo-tool-in-rust-code/1-fish-in-a-jit/
+[code]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/1-fish-in-a-jit/
 
 The code here will be only snippets to help the reading, this whole thing will
 make more sense if you have the sources open in a text editor or another browser
@@ -104,7 +104,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 Clone, compile and run the example:
 
 ~~~
-git clone https://github.com/erethedaybreak/make-a-demo-tool-in-rust-code
+git clone https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code
 cd make-a-demo-tool-in-rust-code
 cd 1-fish-in-a-jit
 cargo run --example fish-jit
