@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>1.4 bytecode.rs - Blob</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x1-4-bytecode-rs epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <h1 id="bytecoders---blob">1.4 bytecode.rs - Blob</h1>
+
+<p>We need to represent the <code>Dmo</code> data as a serialized binary blob (a bunch of
+<code>u8</code>), and a function which can read that and reconstruct the <code>Dmo</code> from it.</p>
+
+<pre class="highlight rust"><code><span class="k">pub</span> <span class="k">trait</span> <span class="n">Bytecode</span> <span class="p">{</span>
+    <span class="k">fn</span> <span class="nf">to_bytecode</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span><span class="p">;</span>
+    <span class="k">fn</span> <span class="nf">from_bytecode</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">Dmo</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+<p>There is no pre-defined way here, we can take the values in any order and
+convert them to bytes, only that we have to follow the same order to make sense
+of it when deserializing from the bytecode.</p>
+
+<pre class="highlight rust"><code><span class="c">// bytecode.rs</span>
+
+<span class="k">impl</span> <span class="n">Bytecode</span> <span class="k">for</span> <span class="n">Dmo</span> <span class="p">{</span>
+    <span class="k">fn</span> <span class="nf">to_bytecode</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">res</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span> <span class="o">=</span> <span class="nn">Vec</span><span class="p">::</span><span class="nf">new</span><span class="p">();</span>
+
+        <span class="c">// Sprites</span>
+        <span class="c">// - u8: number of sprites</span>
+        <span class="c">// - u8: length of the sprite</span>
+        <span class="c">// - [u8]: sprite</span>
+        <span class="c">// ...</span>
+
+        <span class="n">res</span><span class="nf">.push</span><span class="p">(</span><span class="k">self</span><span class="py">.context.sprites</span><span class="nf">.len</span><span class="p">()</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+
+        <span class="c">// ASCII sprites can be unicode UTF-32, so expect the 4-byte char</span>
+        <span class="c">// instead of u8</span>
+        <span class="k">for</span> <span class="n">sprite</span> <span class="n">in</span> <span class="k">self</span><span class="py">.context.sprites</span><span class="nf">.iter</span><span class="p">()</span> <span class="p">{</span>
+            <span class="c">// length in chars, not in bytes</span>
+            <span class="n">res</span><span class="nf">.push</span><span class="p">(</span><span class="n">sprite</span><span class="nf">.chars</span><span class="p">()</span><span class="nf">.count</span><span class="p">()</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+
+            <span class="k">let</span> <span class="n">v</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">char</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">sprite</span><span class="nf">.chars</span><span class="p">()</span><span class="nf">.collect</span><span class="p">();</span>
+            <span class="k">for</span> <span class="n">ch</span> <span class="n">in</span> <span class="n">v</span><span class="nf">.iter</span><span class="p">()</span> <span class="p">{</span>
+                <span class="nf">push_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">res</span><span class="p">,</span> <span class="o">*</span><span class="n">ch</span> <span class="k">as</span> <span class="nb">u32</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="c">// ... and on to the rest of the data until we return the result.</span>
+
+        <span class="n">res</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>When reading it back from a <code>Vec&lt;u8&gt;</code> it helps to use a struct with some helper
+methods to read certain types at a time, such a 4-byte integer or a 4-byte
+float.</p>
+
+<pre class="highlight rust"><code><span class="k">pub</span> <span class="k">struct</span> <span class="n">DataBlob</span> <span class="p">{</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="n">idx</span><span class="p">:</span> <span class="nb">usize</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">impl</span> <span class="n">DataBlob</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">read_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="nb">u32</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">bytes</span><span class="p">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="nb">u8</span><span class="p">]</span> <span class="o">=</span> <span class="o">&amp;</span><span class="k">self</span><span class="py">.data</span><span class="p">[</span><span class="k">self</span><span class="py">.idx</span> <span class="err">.</span><span class="py">. self.idx</span><span class="o">+</span><span class="mi">4</span><span class="p">];</span>
+
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">number</span><span class="p">:</span> <span class="nb">u32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">unsafe</span> <span class="p">{</span>
+            <span class="nn">ptr</span><span class="p">::</span><span class="nf">copy_nonoverlapping</span><span class="p">(</span>
+                <span class="n">bytes</span><span class="nf">.as_ptr</span><span class="p">(),</span>
+                <span class="o">&amp;</span><span class="k">mut</span> <span class="n">number</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u32</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">,</span>
+                <span class="mi">4</span><span class="p">);</span>
+        <span class="p">};</span>
+        <span class="n">number</span><span class="nf">.to_le</span><span class="p">();</span>
+
+        <span class="k">self</span><span class="py">.idx</span> <span class="o">+=</span> <span class="mi">4</span><span class="p">;</span>
+        <span class="n">number</span>
+    <span class="p">}</span>
+
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">read_f32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="nb">f32</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">number</span><span class="p">:</span> <span class="nb">f32</span> <span class="o">=</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="k">self</span><span class="nf">.read_u32</span><span class="p">())</span> <span class="p">};</span>
+        <span class="n">number</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>But other than that we just follow the serializing steps:</p>
+
+<pre class="highlight rust"><code><span class="c">// bytecode.rs</span>
+
+<span class="k">impl</span> <span class="n">Bytecode</span> <span class="k">for</span> <span class="n">Dmo</span> <span class="p">{</span>
+    <span class="k">fn</span> <span class="nf">from_bytecode</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">u8</span><span class="o">&gt;</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">Dmo</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">blob</span> <span class="o">=</span> <span class="nn">DataBlob</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">context</span> <span class="o">=</span> <span class="nn">Context</span><span class="p">::</span><span class="nf">new</span><span class="p">();</span>
+
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">n_sprites</span> <span class="o">=</span> <span class="n">blob</span><span class="nf">.read_u8</span><span class="p">();</span>
+
+        <span class="k">while</span> <span class="n">n_sprites</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="p">{</span>
+            <span class="c">// length of the sprite in chars, not in u8</span>
+            <span class="k">let</span> <span class="n">l</span> <span class="o">=</span> <span class="n">blob</span><span class="nf">.read_u8</span><span class="p">();</span>
+
+            <span class="k">let</span> <span class="n">v</span> <span class="o">=</span> <span class="n">blob</span><span class="nf">.read_char_vec</span><span class="p">(</span><span class="n">l</span> <span class="k">as</span> <span class="nb">usize</span><span class="p">);</span>
+            <span class="k">let</span> <span class="n">s</span><span class="p">:</span> <span class="nb">String</span> <span class="o">=</span> <span class="n">v</span><span class="nf">.into_iter</span><span class="p">()</span><span class="nf">.collect</span><span class="p">();</span>
+
+            <span class="n">context</span><span class="py">.sprites</span><span class="nf">.push</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+
+            <span class="n">n_sprites</span> <span class="err">-</span><span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="c">// ... and on and on until we reconstructed everything.</span>
+        
+        <span class="n">Dmo</span> <span class="p">{</span>
+            <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="p">,</span>
+            <span class="n">operators</span><span class="p">:</span> <span class="n">operators</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">}</span> 
+<span class="p">}</span>
+</code></pre>
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/1-3-jit-rs.html" class="previous">Previous</a></li>
+                <li><a href="/1-5-ascii-fish-example.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child active'><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

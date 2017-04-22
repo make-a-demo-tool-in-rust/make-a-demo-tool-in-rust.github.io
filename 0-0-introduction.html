@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Introduction</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x0-0-introduction epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <h1 id="introduction">Introduction</h1>
+
+<p>The inspiration for the tech comes from the demo tool of the <a href="http://www.pouet.net/groups.php?which=12638">Logicoma group</a>,
+<em>Demotivation</em>. <a href="https://github.com/yupferris">Ferris</a> did excellent streams on how the tool works
+(<a href="https://www.youtube.com/watch?v=p9Obe-Xg35o">Ep.002 stream</a> and <a href="https://github.com/yupferris/ferris-makes-demos-notes/blob/master/ep-002-demotivation.md">notes</a>), and breaking down the
+64k demo <a href="http://www.pouet.net/prod.php?which=68375">Elysian</a> produced in the tool (<a href="https://www.youtube.com/watch?v=DcsesTY6AxI">Ep.003 stream</a>
+and <a href="https://github.com/yupferris/ferris-makes-demos-notes/blob/master/ep-003-elysian-breakdown.md">notes</a>).</p>
+
+<h2 id="motivation-for-a-tool">Motivation for a Tool</h2>
+
+<p>A large number of steps are involved in producing even simple graphics:
+typically you load or generate content, move a camera around while calculating
+matrices and variables for the scene, render the scene to a framebuffer, use
+that framebuffer as a texture for post-processing and so on.</p>
+
+<p>This is organized in the CPU code, and if you know what is going to happen
+already, you can design and code these steps, then compile and run.</p>
+
+<p>Demoscene graphics is very inventive though, you just make it up as you go
+along, and that’s more fun too – not to mention that you will probably change
+between rendering pipelines from one scene to the next in the same demo.</p>
+
+<p>Compiling just the see the result…</p>
+
+<p><img src="/images/waiting-for-the-build-cf34322f.jpg" alt="Waiting for the build" /></p>
+
+<p>(“Waiting for the build”, Juan Manuel Blanes, 1875 / 78, <a href="http://classicprogrammerpaintings.com/post/142841291544/waiting-for-the-build-also-known-as-scala">classicprogrammerpaintings.com</a>)</p>
+
+<p>Instead of hard-coding the sequence of these operations, it is better to
+generate some code which will produce the graphics in real-time, and tune the
+code while you are looking at the result as the code is running.</p>
+
+<p>One way to do this would be with a JIT (Just-In-Time Compilation):</p>
+
+<p>There will be one function which we call at every frame, this will do all the
+drawing. We will build this function in the memory at runtime from a custom
+byte-code sequence which describes the operations to execute. This way, as soon
+as we change the byte-code, the function can be re-built in the memory and at
+the very next frame it can draw something completely different.</p>
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/" class="previous">Previous</a></li>
+                <li><a href="/1-0-fish-in-a-jit.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child active'><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

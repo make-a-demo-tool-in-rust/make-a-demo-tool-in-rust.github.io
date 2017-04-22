@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>1.3 jit.rs - A hand-made function</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x1-3-jit-rs epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <!-- TODO windows and Mac -->
+
+<h1 id="jitrs---a-hand-made-function">1.3 jit.rs - A hand-made function</h1>
+
+<ul>
+  <li><a href="#allocating-memory">Allocating memory</a></li>
+  <li><a href="#filling-it-with-instructions">Filling it with instructions</a></li>
+  <li><a href="#endianness">Endianness</a></li>
+  <li><a href="#operator-enums-to-x86">Operator enums to x86</a></li>
+  <li><a href="#ops-breakdown-print-exit-draw">Ops breakdown: Print, Exit, Draw</a>
+    <ul>
+      <li><a href="#opprint">Op::Print</a></li>
+      <li><a href="#opexitf32">Op::Exit(f32)</a></li>
+      <li><a href="#opdrawu8-u8-f32">Op::Draw(u8, u8, f32)</a></li>
+    </ul>
+  </li>
+  <li><a href="#running-the-jit">Running the JIT</a></li>
+  <li><a href="#drop">Drop</a></li>
+</ul>
+
+<p><strong>NOTE: The x86 details are Linux x86_64 at the moment, but I want to extend
+this for Windows and Mac x86_64 as well.</strong></p>
+
+<p>Using the JIT goes as follows:</p>
+
+<ul>
+  <li>allocate some read-write memory, represented by <code>JitMemory</code></li>
+  <li>fill the memory with instrucion bytes while iterating over a <code>Vec&lt;Operator&gt;</code></li>
+  <li>mark the allocated memory as executable, <code>JitMemory::to_jit_fn()</code> should return a <code>JitFn</code></li>
+  <li>call it as a function with <code>JitFn::run()</code>, which transmutes the pointer to the
+executable memory into a function pointer and calls that pointer</li>
+</ul>
+
+<p>This memory has to be requested in multiples of the <a href="https://en.wikipedia.org/wiki/Page_%28computer_memory%29">page size</a>
+supported by the CPU, for <code>x86_64</code> the smallest valid size is <code>4k</code>.</p>
+
+<p>The OS will not allow a memory region to be both writable and executable at the
+same time, so these stages have to be clearly separated.</p>
+
+<p><code>JitMemory</code> keeps track of the address, the size we requested and the index
+offset where we are going to write the next byte.</p>
+
+<p><code>JitFn</code> maps to an address already marked as executable.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="c">// Allocate memory sizes as multiples of 4k page.</span>
+<span class="k">const</span> <span class="n">PAGE_SIZE</span><span class="p">:</span> <span class="nb">usize</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">;</span>
+
+<span class="c">/// A read-write memory buffer allocated to be filled with bytes of `x86`</span>
+<span class="c">/// instructions.</span>
+<span class="k">pub</span> <span class="k">struct</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="n">addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">,</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">usize</span><span class="p">,</span>
+    <span class="c">/// current position for writing the next byte</span>
+    <span class="n">offset</span><span class="p">:</span> <span class="nb">usize</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c">/// An executable memory buffer filled with `x86` instructions.</span>
+<span class="k">pub</span> <span class="k">struct</span> <span class="n">JitFn</span> <span class="p">{</span>
+    <span class="n">addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">,</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">usize</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="allocating-memory">Allocating memory</h2>
+
+<p>The allocated memory block has to be aligned on a boundary of 16 bytes,
+otherwise we won’t be able to use it as an executable function on both Windows,
+Mac and Linux.</p>
+
+<p><code>libc::malloc()</code> simply allocates a block at the next convenient address, and
+doesn’t guarantee any kind of alignment.</p>
+
+<p>In the <a href="https://www.gnu.org/software/libc/manual/">libc manual</a> we find <em>3.2.3.6 Allocating Aligned Memory
+Blocks</em>, which describes <code>posix_memalign()</code>. The function signature is:</p>
+
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">posix_memalign</span> <span class="p">(</span><span class="kt">void</span> <span class="o">**</span><span class="n">memptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">alignment</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">size</span><span class="p">)</span>
+</code></pre>
+<p>We can use this to request an aligned memory block of a certain size, then use
+<code>mprotect()</code> to mark it as read-write.</p>
+
+<p>Because this memory can contain anything when we get it, it’s a good idea to use
+<code>memset()</code> to fill it with <code>ret</code> calls (<code>0xC3</code>), so if our function moves to an
+unexpected instruction, at least it will just return.</p>
+
+<p><code>posix_memalign()</code> sets a C <code>**void</code> type pointer in the first argument. We have
+to transmute this to a <code>*mut u8</code> Rust type, then we are good to go.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">impl</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="c">/// Allocates read-write memory aligned on a 16 byte boundary.</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">new</span><span class="p">(</span><span class="n">num_pages</span><span class="p">:</span> <span class="nb">usize</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">JitMemory</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">size</span><span class="p">:</span> <span class="nb">usize</span> <span class="o">=</span> <span class="n">num_pages</span> <span class="o">*</span> <span class="n">PAGE_SIZE</span><span class="p">;</span>
+        <span class="k">let</span> <span class="n">addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">;</span>
+
+        <span class="k">unsafe</span> <span class="p">{</span>
+            <span class="c">// Take a pointer</span>
+            <span class="k">let</span> <span class="k">mut</span> <span class="n">raw_addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nn">libc</span><span class="p">::</span><span class="nb">c_void</span> <span class="o">=</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">uninitialized</span><span class="p">();</span>
+
+            <span class="c">// Allocate aligned to page size</span>
+            <span class="nn">libc</span><span class="p">::</span><span class="nf">posix_memalign</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">raw_addr</span><span class="p">,</span>
+                                 <span class="n">PAGE_SIZE</span><span class="p">,</span>
+                                 <span class="n">size</span><span class="p">);</span>
+
+            <span class="c">// Mark the memory as read-write</span>
+            <span class="nn">libc</span><span class="p">::</span><span class="nf">mprotect</span><span class="p">(</span><span class="n">raw_addr</span><span class="p">,</span>
+                           <span class="n">size</span><span class="p">,</span>
+                           <span class="nn">libc</span><span class="p">::</span><span class="n">PROT_READ</span> <span class="p">|</span> <span class="nn">libc</span><span class="p">::</span><span class="n">PROT_WRITE</span><span class="p">);</span>
+
+            <span class="c">// Fill with 'RET' calls (0xc3)</span>
+            <span class="nn">libc</span><span class="p">::</span><span class="nf">memset</span><span class="p">(</span><span class="n">raw_addr</span><span class="p">,</span> <span class="mi">0xc3</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+
+            <span class="c">// Transmute the c_void pointer to a Rust u8 pointer</span>
+            <span class="n">addr</span> <span class="o">=</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">raw_addr</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="n">JitMemory</span> <span class="p">{</span>
+            <span class="n">addr</span><span class="p">:</span> <span class="n">addr</span><span class="p">,</span>
+            <span class="n">size</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="n">offset</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="filling-it-with-instructions">Filling it with instructions</h2>
+
+<p>The <code>JitAssembler</code> trait describes what <code>JitMemory</code> will have to implement so
+that we can assemble our function.</p>
+
+<p><code>push_u8()</code> puts in single-byte values. We can use this to construct 4-byte
+<code>u32</code> and 8-byte <code>u64</code> values in the memory, <code>fill_jit()</code> makes use of these.
+Eventually <code>to_jit_fn()</code> marks the memory block as executable and returns a
+<code>JitFn</code> where we can use <code>JitFn::run()</code> to call the function.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">pub</span> <span class="k">trait</span> <span class="n">JitAssembler</span> <span class="p">{</span>
+
+    <span class="c">/// Fills the memory block with `x86` instructions while iterating over a</span>
+    <span class="c">/// list of `Operator` enums.</span>
+    <span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Operator</span><span class="o">&gt;</span><span class="p">);</span>
+
+    <span class="c">/// Marks the memory block as executable and returns a `JitFn` containing</span>
+    <span class="c">/// that address.</span>
+    <span class="k">fn</span> <span class="nf">to_jit_fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">JitFn</span><span class="p">;</span>
+
+    <span class="c">/// Writes one byte to the memory at the current index offset and increments</span>
+    <span class="c">/// the offset.</span>
+    <span class="k">fn</span> <span class="nf">push_u8</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">u8</span><span class="p">);</span>
+
+    <span class="c">/// Writes a 4-byte value. `x86` specifies Little-Endian encoding,</span>
+    <span class="c">/// least-significant byte first.</span>
+    <span class="k">fn</span> <span class="nf">push_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">u32</span><span class="p">);</span>
+
+    <span class="c">/// Writes an 8-byte value.</span>
+    <span class="k">fn</span> <span class="nf">push_u64</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">u64</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+<p>Implementing <code>push_u8()</code> assigns the value to the byte at <code>addr + offset</code> and
+increments the offset.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">fn</span> <span class="nf">push_u8</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">u8</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">unsafe</span> <span class="p">{</span> <span class="o">*</span><span class="k">self</span><span class="py">.addr</span><span class="nf">.offset</span><span class="p">(</span><span class="k">self</span><span class="py">.offset</span> <span class="k">as</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">value</span> <span class="p">};</span>
+    <span class="k">self</span><span class="py">.offset</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="endianness">Endianness</h2>
+
+<p>Implementing <code>push_u32()</code> and <code>push_u64()</code> has to construct these multi-byte
+values from single bytes, and the CPU architecture will specify if we must use
+either Little-Endian or Big-Endian encoding, or can do both.</p>
+
+<p>At least this doesn’t vary between OSes, the CPU specifies it, and
+the <a href="https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures#Endianness">Endianness table</a> tells us that all the <code>x86</code> CPUs stick to
+Little-Endian (LE).</p>
+
+<p>The naming is counter-intuitive, the “end” refers to the front- or starting end
+(first byte by pointer address), not to the “final portion” end (last byte by
+pointer address).</p>
+
+<p>There are advantages in this for the machine. The pointer address points to the
+first byte, and casting between interger types doesn’t need to relocate the
+bytes, just ignore or append to the end.</p>
+
+<p>For small intergers it will even preserve the value:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">type</th>
+      <th style="text-align: left">bytes (LE)</th>
+      <th style="text-align: left">value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><code>u32</code></td>
+      <td style="text-align: left"><code>7A 00 00 00</code></td>
+      <td style="text-align: left">122</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>u16</code></td>
+      <td style="text-align: left"><code>7A 00</code></td>
+      <td style="text-align: left">122</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>u32</code></td>
+      <td style="text-align: left"><code>0D 0C 0B 0A</code></td>
+      <td style="text-align: left">168496141</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>u16</code></td>
+      <td style="text-align: left"><code>0D 0C</code></td>
+      <td style="text-align: left">3085</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><img src="/images/Little-Endian.svg-d1992aad.png" alt="Endianness" /></p>
+
+<p>(Diagram from the <a href="https://en.wikipedia.org/wiki/Endianness">Endianness</a> Wikipedia page.)</p>
+
+<p>Implementing it means bit-shifting the value, zeroing the higher bits by taking
+a bitwise <code>&amp;</code> with <code>0xFF</code> and what’s left is an <code>u8</code> byte:</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">fn</span> <span class="nf">push_u32</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">u32</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(((</span><span class="n">value</span> <span class="o">&gt;&gt;</span>  <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">0xFF</span><span class="p">)</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+    <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(((</span><span class="n">value</span> <span class="o">&gt;&gt;</span>  <span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">0xFF</span><span class="p">)</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+    <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(((</span><span class="n">value</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">0xFF</span><span class="p">)</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+    <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(((</span><span class="n">value</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">0xFF</span><span class="p">)</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="operator-enums-to-x86">Operator enums to x86</h2>
+
+<p>We expressed the operations we want to happen with a list of enums, it’s time to
+fill the JIT (that is, write the instructions to memory) with a function that
+iterates over those enums, while also passing an <code>&amp;mut Context</code> pointer so we
+can manipulate the application’s state.</p>
+
+<pre class="highlight rust"><code><span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Operator</span><span class="o">&gt;</span><span class="p">);</span>
+</code></pre>
+<p>By convention we have to start our program with the function prologue and end
+with the epilogue. If you were writing assembly:</p>
+
+<pre class="highlight plaintext"><code>; prologue
+push rbp
+mov rbp, rsp
+
+; ... action and excitement
+
+; epilogue
+mov rsp, rbp
+pop rbp
+ret
+</code></pre>
+<!-- TODO explain what the prologue and epilogue does
+
+TODO explain how to figure out opcode bytes -->
+
+<p>And so we have to put the equivalent byte opcodes in the memory. To preserve our
+sanity we will compose small functions which put in a few bytes at a time.</p>
+
+<p>This way, when we have our <code>JitMemory</code>, we can call these one after the other as
+if writing assembly.</p>
+
+<p>For example the <code>push_rbp()</code> and <code>mov_rbp_rsp()</code> would be:</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+<span class="k">impl</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">push_rbp</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(</span><span class="mi">0x55</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">mov_rbp_rsp</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(</span><span class="mi">0x48</span><span class="p">);</span>
+        <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(</span><span class="mi">0x89</span><span class="p">);</span>
+        <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(</span><span class="mi">0xe5</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>And then we can use this in <code>fill_jit()</code> to start and end our hand-made
+function, and in between we can implement action and excitement!</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">impl</span> <span class="n">JitAssembler</span> <span class="k">for</span> <span class="n">JitMemory</span> <span class="p">{</span>
+
+    <span class="cp">#[cfg(all(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_arch</span> <span class="cp">=</span> <span class="s">"x86_64"</span><span class="cp">))]</span>
+    <span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c">// prologue</span>
+        <span class="k">self</span><span class="nf">.push_rbp</span><span class="p">();</span>
+        <span class="k">self</span><span class="nf">.mov_rbp_rsp</span><span class="p">();</span>
+
+        <span class="k">for</span> <span class="n">op</span> <span class="n">in</span> <span class="n">operators</span><span class="nf">.iter</span><span class="p">()</span> <span class="p">{</span>
+            <span class="k">match</span> <span class="o">*</span><span class="n">op</span> <span class="p">{</span>
+                <span class="nn">Op</span><span class="p">::</span><span class="n">NOOP</span> <span class="k">=&gt;</span> <span class="p">(),</span>
+                <span class="nn">Op</span><span class="p">::</span><span class="nf">Draw</span><span class="p">(</span><span class="n">sprite_idx</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">speed</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
+                    <span class="cm">/* push x86 byte instructions to memory as if writing
+                    assembly, but we are assembling the machine code directly */</span>
+                <span class="p">},</span>
+                <span class="nn">Op</span><span class="p">::</span><span class="n">Print</span> <span class="k">=&gt;</span> <span class="p">{</span> <span class="cm">/* ... */</span> <span class="p">},</span>
+                <span class="nn">Op</span><span class="p">::</span><span class="nf">Clear</span><span class="p">(</span><span class="n">charcode</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span> <span class="cm">/* ... */</span> <span class="p">},</span>
+                <span class="nn">Op</span><span class="p">::</span><span class="nf">Exit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span> <span class="cm">/* ... */</span> <span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c">// epilogue</span>
+        <span class="k">self</span><span class="nf">.mov_rsp_rbp</span><span class="p">();</span>
+        <span class="k">self</span><span class="nf">.pop_rbp</span><span class="p">();</span>
+        <span class="k">self</span><span class="nf">.ret</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="ops-breakdown-print-exit-draw">Ops breakdown: Print, Exit, Draw</h2>
+
+<p>The Linux <code>x86_64</code> ABI is <code>sysv64</code>, the first few arguments are passed in
+registers, any remaining ones are passed on the stack.</p>
+
+<p>The first six integer arguments are passed in:</p>
+
+<pre class="highlight plaintext"><code>rdi, rsi, rdx, rcx, r8, r9
+</code></pre>
+<p>Floating-point arguments are passed in <code>xmm0</code> - <code>xmm7</code>.</p>
+
+<p>The <code>rsp</code> register must point to an address on a 16-byte boundary before the
+<code>call</code> jumps. Remember that <code>call</code> will <code>push rdi</code>, moving <code>rsp</code> with -8 bytes
+immediately before the jump.</p>
+
+<p>In the prologue we made one <code>push</code> (<code>rsp</code> moved -8 bytes), and <code>call</code> will add
+another <code>push</code> (-8 again), which is -16, so we don’t have to <code>sub</code> the value in
+<code>rsp</code> to adjust.</p>
+
+<p>At that point we can call the address of the Rust function which corresponds to
+the operator enum.</p>
+
+<p>If we were counting wrong, we would find out here, because our JIT function
+would segfault.</p>
+
+<p>After the call, it is good to note that if we didn’t have enough registers for
+the function arguments and we pushed the remaining ones to the stack, then here
+we would have to clean up (the stack) by adding to the address value of <code>rsp</code>.</p>
+
+<p>But there is no cleaning to do at this time and we can just finish after the
+call.</p>
+
+<h3 id="opprint">Op::Print</h3>
+
+<p><code>Op::Print</code> is a simple business. Remember that we want to call from the JIT to
+a Rust function, where <code>&amp;self</code> is a <code>&amp;Context</code>, so the first argument is that
+pointer address (integer value).</p>
+
+<pre class="highlight rust"><code><span class="c">// ops.rs</span>
+
+<span class="k">impl</span> <span class="n">Ops</span> <span class="k">for</span> <span class="n">Context</span> <span class="p">{</span>
+
+    <span class="c">/// Prints the text buffer, followed by a `\r` rewind</span>
+    <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span> <span class="nf">print</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">s</span><span class="p">:</span> <span class="nb">String</span> <span class="o">=</span> <span class="k">self</span><span class="py">.buffer</span><span class="nf">.iter</span><span class="p">()</span><span class="nf">.cloned</span><span class="p">()</span><span class="nf">.collect</span><span class="p">();</span>
+        <span class="k">let</span> <span class="n">text</span> <span class="o">=</span> <span class="nd">format!</span><span class="p">(</span><span class="s">"     {}</span><span class="se">\r</span><span class="s">"</span><span class="p">,</span> <span class="n">s</span><span class="p">);</span>
+        <span class="nd">print!</span><span class="p">(</span><span class="s">"{}"</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</code></pre>
+<p>And so in <code>fill_jit()</code>:</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="nn">Op</span><span class="p">::</span><span class="n">Print</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
+    <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+
+    <span class="c">// put the address of the function in rax</span>
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">print</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Context</span><span class="p">)</span>
+    <span class="p">)});</span>
+
+    <span class="c">// call the function address in rax</span>
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
+</code></pre>
+<h3 id="opexitf32">Op::Exit(f32)</h3>
+
+<p>The main drawing loop of the application is controlled with the <code>.is_running</code>
+bool in the <code>Context</code>.</p>
+
+<p>The <code>Exit(f32)</code> operator will translate to a call to <code>exit()</code>:</p>
+
+<pre class="highlight rust"><code><span class="c">// ops.rs</span>
+
+<span class="k">impl</span> <span class="n">Ops</span> <span class="k">for</span> <span class="n">Context</span> <span class="p">{</span>
+    <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span> <span class="nf">exit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">f32</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="k">self</span><span class="py">.time</span> <span class="o">&gt;</span> <span class="n">limit</span> <span class="p">{</span>
+            <span class="k">self</span><span class="py">.is_running</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>When adding instructions for this operator, in addition to a <code>&amp;mut Context</code>
+pointer, we also have to pass a floating point argument.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="nn">Op</span><span class="p">::</span><span class="nf">Exit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
+    <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+
+    <span class="c">// xmm0: limit argument (floating point)</span>
+    <span class="k">self</span><span class="nf">.movss_xmm_n_f32</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">limit</span><span class="p">);</span>
+
+    <span class="c">// put the address of the function in rax</span>
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">exit</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">f32</span><span class="p">)</span>
+    <span class="p">)</span> <span class="p">});</span>
+
+    <span class="c">// call the function address in rax</span>
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
+</code></pre>
+<h3 id="opdrawu8-u8-f32">Op::Draw(u8, u8, f32)</h3>
+
+<p>Great! For this we are passing a mixture of arguments as well:</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="nn">Op</span><span class="p">::</span><span class="nf">Draw</span><span class="p">(</span><span class="n">sprite_idx</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">speed</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
+    <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+    <span class="c">// rsi: sprite_idx arg. (interger)</span>
+    <span class="k">self</span><span class="nf">.movabs_rsi_u64</span><span class="p">(</span><span class="n">sprite_idx</span> <span class="k">as</span> <span class="nb">u64</span><span class="p">);</span>
+    <span class="c">// rdx: offset arg. (interger)</span>
+    <span class="k">self</span><span class="nf">.movabs_rdx_u64</span><span class="p">(</span><span class="n">offset</span> <span class="k">as</span> <span class="nb">u64</span><span class="p">);</span>
+    <span class="c">// xmm0: speed arg. (floating point)</span>
+    <span class="k">self</span><span class="nf">.movss_xmm_n_f32</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">speed</span><span class="p">);</span>
+
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">draw</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">f32</span><span class="p">)</span>
+    <span class="p">)});</span>
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
+</code></pre>
+<h2 id="running-the-jit">Running the JIT</h2>
+
+<p>There will come a time when this function that we crated byte-by-byte is ready
+to be executed.</p>
+
+<p>In the main drawing loop, we call the JIT function at every frame, passing it a
+<code>&amp;mut Context</code> pointer.</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">impl</span> <span class="n">JitFn</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">run</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">unsafe</span> <span class="p">{</span>
+            <span class="c">// type signature of the jit function</span>
+            <span class="k">let</span> <span class="n">fn_ptr</span><span class="p">:</span> <span class="k">extern</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">);</span>
+            <span class="c">// transmute the pointer of the executable memory to a pointer of the jit function</span>
+            <span class="n">fn_ptr</span> <span class="o">=</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span><span class="p">);</span>
+            <span class="c">// use the function pointer</span>
+            <span class="nf">fn_ptr</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h2 id="drop">Drop</h2>
+
+<p>Since we allocated this piece of memory manually, we are also responsible for
+freeing it. <code>libc::munmap</code> will do the job. The libc manual tells us the signature:</p>
+
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">munmap</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">length</span><span class="p">)</span>
+</code></pre>
+<p>The <code>Drop</code> trait is used to implement actions when a variable goes out of scope,
+so let’s implement that for <code>JitMemory</code> and <code>JitFn</code>:</p>
+
+<pre class="highlight rust"><code><span class="k">impl</span> <span class="n">Drop</span> <span class="k">for</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">libc</span><span class="p">::</span><span class="nf">munmap</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="k">self</span><span class="py">.size</span><span class="p">);</span> <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">impl</span> <span class="n">Drop</span> <span class="k">for</span> <span class="n">JitFn</span> <span class="p">{</span>
+    <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">libc</span><span class="p">::</span><span class="nf">munmap</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="k">self</span><span class="py">.size</span><span class="p">);</span> <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/1-2-ops-rs.html" class="previous">Previous</a></li>
+                <li><a href="/1-4-bytecode-rs.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child active'><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

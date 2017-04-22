@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>1.1 dmo.rs - State and content</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x1-1-dmo-rs epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <h1 id="dmors---state-and-content">1.1 dmo.rs - State and content</h1>
+
+<p><code>Dmo</code> holds the application state and data content we need to access when
+running the code.</p>
+
+<p>The <code>Vec&lt;Operator&gt;</code> will be used to build the JIT fn. When calling it, the JIT
+fn will have access to <code>Context</code>, so this needs the data which we operate on –
+text sprites, print buffer and so on.</p>
+
+<p>We expect the text sprites in Unicode (more fun characters), so we use
+<code>Vec&lt;char&gt;</code> instead of a <code>Vec&lt;u8&gt;</code>. A <code>char</code> is 4-bytes to represent UTF-32
+encoding.</p>
+
+<pre class="highlight rust"><code><span class="c">// src/dmo.rs</span>
+
+<span class="k">pub</span> <span class="k">struct</span> <span class="n">Dmo</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+    <span class="k">pub</span> <span class="n">operators</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Operator</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">pub</span> <span class="k">struct</span> <span class="n">Context</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="n">sprites</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="k">pub</span> <span class="n">buffer</span><span class="p">:</span> <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">char</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="k">pub</span> <span class="n">is_running</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="k">pub</span> <span class="n">time</span><span class="p">:</span> <span class="nb">f32</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">pub</span> <span class="k">enum</span> <span class="n">Operator</span> <span class="p">{</span>
+    <span class="c">/// No operation</span>
+    <span class="n">NOOP</span><span class="p">,</span>
+    <span class="c">/// Exit the main loop if time is greater than this value</span>
+    <span class="nf">Exit</span><span class="p">(</span><span class="nb">f32</span><span class="p">),</span>
+    <span class="c">/// Print the text buffer</span>
+    <span class="n">Print</span><span class="p">,</span>
+    <span class="c">/// Draw a sprite into the buffer: sprite idx, offset, time speed</span>
+    <span class="nf">Draw</span><span class="p">(</span><span class="nb">u8</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">f32</span><span class="p">),</span>
+    <span class="c">/// Clear the text buffer with a character code, expect UTF-32 unicode</span>
+    <span class="nf">Clear</span><span class="p">(</span><span class="nb">u32</span><span class="p">),</span>
+<span class="p">}</span>
+</code></pre>
+<p>The <code>Dmo</code> data could come from a GUI. Here we will just design our demo by
+writing a <code>YAML</code> file and deserializing it with <code>serde</code>.</p>
+
+<p>Such as this for the earlier ASCII example:</p>
+
+<pre class="highlight yaml"><code><span class="c1"># examples/fish-demo.yml</span>
+
+<span class="na">operators</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">Clear</span><span class="pi">:</span> <span class="s">32</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">3</span><span class="pi">,</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">0.3</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">5</span><span class="pi">,</span> <span class="nv">8.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">1.5</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">4.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">3</span><span class="pi">,</span> <span class="nv">6.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="s">Print</span>
+  <span class="pi">-</span> <span class="na">Exit</span><span class="pi">:</span> <span class="s">30.0</span>
+
+<span class="na">context</span><span class="pi">:</span>
+  <span class="na">sprites</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;(([°&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">}-&lt;ø&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="s">¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,,"</span>
+</code></pre>
+<p>This directly deserializes into our <code>Dmo</code> struct.</p>
+
+<p>From the <code>YAML</code> we get the <code>Dmo</code>, then we will implement a <code>Dmo::to_bytecode()</code>
+which encodes it as a <code>Vec&lt;u8&gt;</code>.</p>
+
+<pre class="highlight rust"><code><span class="c">// src/dmo.rs</span>
+
+<span class="k">impl</span> <span class="n">Dmo</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">new_from_yml_str</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">str</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">Result</span><span class="o">&lt;</span><span class="n">Dmo</span><span class="p">,</span> <span class="nb">Box</span><span class="o">&lt;</span><span class="n">Error</span><span class="o">&gt;&gt;</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">dmo</span><span class="p">:</span> <span class="n">Dmo</span> <span class="o">=</span> <span class="nd">try!</span><span class="p">(</span><span class="nn">serde_yaml</span><span class="p">::</span><span class="nf">from_str</span><span class="p">(</span><span class="n">text</span><span class="p">));</span>
+        <span class="nf">Ok</span><span class="p">(</span><span class="n">dmo</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">write_to_blob</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">PathBuf</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">Result</span><span class="o">&lt;</span><span class="p">(),</span> <span class="nb">Box</span><span class="o">&lt;</span><span class="n">Error</span><span class="o">&gt;&gt;</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="k">mut</span> <span class="n">f</span><span class="p">:</span> <span class="n">File</span> <span class="o">=</span> <span class="nd">try!</span><span class="p">(</span><span class="nn">File</span><span class="p">::</span><span class="nf">create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">path</span><span class="p">));</span>
+        <span class="k">let</span> <span class="n">bytecode</span> <span class="o">=</span> <span class="k">self</span><span class="nf">.to_bytecode</span><span class="p">();</span>
+        <span class="n">f</span><span class="nf">.write_all</span><span class="p">(</span><span class="n">bytecode</span><span class="nf">.as_slice</span><span class="p">())</span><span class="nf">.unwrap</span><span class="p">();</span>
+        <span class="nf">Ok</span><span class="p">(())</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>That <code>Vec&lt;u8&gt;</code> will represent the whole demo which can be replayed by a small
+utility. We write the bytecode to disk, but the standalone replay doesn’t even
+need to read files, just <code>include_bytes!()</code> at compile time, reconstruct the
+<code>Dmo</code> from it and ready to go.</p>
+
+<pre class="highlight rust"><code><span class="c">// examples/fish-standalone.rs</span>
+
+<span class="k">pub</span> <span class="k">fn</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c">// Read in at compile time, include path is relative to the .rs file.</span>
+    <span class="k">let</span> <span class="n">bytecode</span> <span class="o">=</span> <span class="nd">include_bytes!</span><span class="p">(</span><span class="s">"./fish-demo.dmo"</span><span class="p">)</span><span class="nf">.to_vec</span><span class="p">();</span>
+
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">dmo</span> <span class="o">=</span> <span class="nn">Dmo</span><span class="p">::</span><span class="nf">from_bytecode</span><span class="p">(</span><span class="n">bytecode</span><span class="p">);</span>
+
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">jm</span><span class="p">:</span> <span class="n">JitMemory</span> <span class="o">=</span> <span class="nn">JitMemory</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="n">jm</span><span class="nf">.fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">dmo</span><span class="py">.context</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dmo</span><span class="py">.operators</span><span class="p">);</span>
+    <span class="k">let</span> <span class="n">jit_fn</span> <span class="o">=</span> <span class="n">jm</span><span class="nf">.to_jit_fn</span><span class="p">();</span>
+
+    <span class="nd">print!</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="k">while</span> <span class="n">dmo</span><span class="py">.context.is_running</span> <span class="p">{</span>
+        <span class="n">jit_fn</span><span class="nf">.run</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">dmo</span><span class="py">.context</span><span class="p">);</span>
+
+        <span class="nf">sleep</span><span class="p">(</span><span class="nn">Duration</span><span class="p">::</span><span class="nf">from_millis</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span>
+        <span class="n">dmo</span><span class="py">.context.time</span> <span class="o">+=</span> <span class="mf">0.01</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">print!</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/1-0-fish-in-a-jit.html" class="previous">Previous</a></li>
+                <li><a href="/1-2-ops-rs.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child active'><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

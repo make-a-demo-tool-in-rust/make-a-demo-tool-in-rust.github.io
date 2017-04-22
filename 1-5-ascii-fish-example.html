@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>1.5 ASCII fish example</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x1-5-ascii-fish-example epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <h1 id="ascii-fish-example">1.5 ASCII fish example</h1>
+
+<p><img src="/images/fish-jit-260d50b1.gif" alt="fish in a jit" /></p>
+
+<p>This is the <a href="https://github.com/erethedaybreak/make-a-demo-tool-in-rust-code/1-fish-in-a-jit/examples/fish-jit.rs">examples/fish-jit.rs</a> example using our custom little JIT lib.</p>
+
+<ol>
+  <li>This takes the <code>YAML</code> file below,</li>
+  <li>deserializes it into a <code>Dmo</code> struct,</li>
+  <li>allocates the JIT memory and fills it with instructions,</li>
+  <li>starts a <code>while</code> loop</li>
+  <li>calls the JIT function at every iteration</li>
+  <li>sleeps a bit and increments time.</li>
+</ol>
+
+<pre class="highlight yaml"><code><span class="c1"># examples/fish-demo.yml</span>
+
+<span class="na">operators</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">Clear</span><span class="pi">:</span> <span class="s">32</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">3</span><span class="pi">,</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">0.3</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">5</span><span class="pi">,</span> <span class="nv">8.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">1.5</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">30</span><span class="pi">,</span> <span class="nv">4.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">15</span><span class="pi">,</span> <span class="nv">6.0</span> <span class="pi">]</span>
+  <span class="pi">-</span> <span class="s">Print</span>
+  <span class="pi">-</span> <span class="na">Exit</span><span class="pi">:</span> <span class="s">30.0</span>
+
+<span class="na">context</span><span class="pi">:</span>
+  <span class="na">sprites</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;(([°&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">}-&lt;ø&gt;</span><span class="nv"> </span><span class="s">"</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="s">¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,,"</span>
+</code></pre>
+<p>Clone, compile and run:</p>
+
+<pre class="highlight plaintext"><code>git clone https://github.com/erethedaybreak/make-a-demo-tool-in-rust-code
+cd make-a-demo-tool-in-rust-code
+cd 1-fish-in-a-jit
+cargo run --example fish-jit
+</code></pre>
+<p><strong>NOTE:</strong> only Linux x86_64 at the moment. Windows and Mac x86_64 happening later.</p>
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/1-4-bytecode-rs.html" class="previous">Previous</a></li>
+                <li><a href="/assembly-tutorial.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child active'><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

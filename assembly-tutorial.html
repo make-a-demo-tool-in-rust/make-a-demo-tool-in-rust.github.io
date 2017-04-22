@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Assembly Tutorial</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="assembly-tutorial epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <!-- 
+- [assembly.org](~/org/notes/assembly.org)
+ -->
+
+<h1 id="assembly-tutorial">Assembly Tutorial</h1>
+
+<p>This will be a basic assembly tutorial focusing on how to assemble the JIT
+function <code>x86</code> instructions.</p>
+
+<p>Until the fortunate arrival of that glorious day, I recommend these excellent tutorials:</p>
+
+<ul>
+  <li><a href="https://www.nayuki.io/page/a-fundamental-introduction-to-x86-assembly-programming">A fundamental introduction to x86 assembly programming</a></li>
+  <li><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">Guide to x86 Assembly</a>, and <a href="http://flint.cs.yale.edu/cs421/papers/x86-asm/asm.html">the same with AT&amp;T syntax</a></li>
+  <li><a href="https://0xax.github.io/asm_1/">Say hello to x86_64 Assembly</a></li>
+  <li><a href="http://cs.lmu.edu/~ray/notes/gasexamples/">GNU Assembler Examples</a></li>
+  <li><a href="http://eli.thegreenplace.net/2011/02/04/where-the-top-of-the-stack-is-on-x86/">Where the top of the stack is on x86</a></li>
+  <li><a href="http://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64">Stack frame layout on x86-64</a></li>
+</ul>
+
+<h2 id="notes">Notes</h2>
+
+<ul>
+  <li><a href="#passing-arguments">Passing arguments</a></li>
+  <li><a href="#function-call-abis">Function call ABIs</a></li>
+  <li><a href="#assembler-tools">Assembler Tools</a></li>
+  <li><a href="#debuggers">Debuggers</a></li>
+</ul>
+
+<h2 id="passing-arguments">Passing arguments</h2>
+
+<p>In 64-bit x86 code, you pass the first few parameters in registers.</p>
+
+<p>Exactly which registers you use depends on the CPU arch and how the OS uses it.</p>
+
+<p>On x86-64 Linux the first six parameters go into:</p>
+
+<pre class="highlight plaintext"><code>rdi, rsi, rdx, rcx, r8, r9
+</code></pre>
+<p>On Windows x64, the first four parameters go into:</p>
+
+<pre class="highlight plaintext"><code>rcx, rdx, r8, r9
+</code></pre>
+<p>On 32-bit x86 systems parameters are passed on the stack.</p>
+
+<h2 id="function-call-abis">Function call ABIs</h2>
+
+<p>x86-32 Windows uses various ABIs for function calls. Win32 uses “stdcall” as the
+default, function arguments are passed on the stack in reverse order.</p>
+
+<p>x86-32 Linux can use “stdcall”.</p>
+
+<p>x86-64 Linux uses “System V ABI” for function calls. Pass arguments in registers.</p>
+
+<h2 id="assembler-tools">Assembler Tools</h2>
+
+<ul>
+  <li><a href="http://www.nasm.us/doc/nasmdo11.html">nasm</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/GNU_Assembler">gas, GNU Assembler</a></li>
+  <li><a href="https://defuse.ca/online-x86-assembler.htm">Online x86 and x64 Intel Instruction Assembler</a></li>
+</ul>
+
+<h2 id="debuggers">Debuggers</h2>
+
+<ul>
+  <li>gdb (Linux)</li>
+  <li>hopper (Mac)</li>
+</ul>
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/1-5-ascii-fish-example.html" class="previous">Previous</a></li>
+                <li><a href="/feed.xml" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child active'><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Make a Demo Tool in Rust</title>
+  <id>https://make-a-demo-tool-in-rust.github.io</id>
+  <link href="https://make-a-demo-tool-in-rust.github.io"/>
+  <link href="https://make-a-demo-tool-in-rust.github.io/feed.xml" rel="self"/>
+  <updated>2017-04-21T01:00:00+01:00</updated>
+  <author>
+    <name>etd</name>
+  </author>
+  <entry>
+    <title>Intro and first chapter, Fish in a JIT</title>
+    <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html"/>
+    <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html</id>
+    <published>2017-04-21T01:00:00+01:00</published>
+    <updated>2017-04-22T16:41:59+01:00</updated>
+    <author>
+      <name>etd</name>
+    </author>
+    <content type="html">&lt;h1 id="intro-and-first-chapter-fish-in-a-jit"&gt;Intro and first chapter, Fish in a JIT&lt;/h1&gt;
+
+&lt;p&gt;Just published the tutorial with the first pages. More content is in the making!&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="/0-0-introduction.html"&gt;Introduction&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Origins of this tutorial and the general motivation for a tool.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="/1-0-fish-in-a-jit.html"&gt;1. Fish in a JIT&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Make a small thing with a JIT function that prints oneliner animated ASCII graphics.&lt;/p&gt;
+
+</content>
+  </entry>
+</feed>
