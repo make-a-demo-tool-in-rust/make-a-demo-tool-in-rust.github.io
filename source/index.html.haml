@@ -1,0 +1,47 @@
+---
+title: "Home"
+---
+
+%h1 Make a Demo Tool in Rust
+
+%p It's not complete or polished or anything. So let's dig in!
+
+%section
+  - sitemap.resources.select{|page| page.data.frontpage_toc }.sort_by{|n| n.data.frontpage_toc_idx }.each do |page|
+    %article
+      %a{:href => "#{page.url}"}= page.data.title
+      - if page.data.summary
+        %p= page.data.summary
+      - if page.data.summary_image
+        %img{:src => "#{page.data.summary_image}", :alt => "#{page.data.summary_image_alt}"}
+
+  %article
+    %p Plans for the next chapters:
+
+  %article
+    %p
+      %strong
+        2. It's blue from the outside (work in progress)
+    %p
+      Put in the pixels, sync-track with Rocket and render some raymarched quad scenes.
+    %p
+      This is coming along. Most of the code is done, I'm working on smoothing out the rough edges a bit and then the write-up.
+    %p
+      %strong
+        3. Make it no_std, make it small.
+    %p
+      Small enough for a 64k intro.
+
+%h2 Updates
+
+%section{:style => "margin-bottom: 1em;"}
+  %a{:href => "/feed.xml"}
+    %img.inline{:src => "/images/feed-icon-14x14.png", :alt => "RSS Feed"}
+    %span RSS Feed
+
+%section
+  - sitemap.resources.select{|page| page.data.categories && page.data.categories.include?('updates') }.sort_by{|n| n.data.date }.each do |page|
+    %article
+      %span{:style => "padding-right: 0.5em;"}
+        = page.date.strftime("%Y-%m-%d")
+      %a{:href => "#{page.url}"}= page.data.title

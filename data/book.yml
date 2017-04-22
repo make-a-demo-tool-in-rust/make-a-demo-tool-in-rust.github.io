@@ -1,0 +1,11 @@
+---
+title: Make a Demo Tool in Rust
+author: etd
+
+# no trailing /
+domain: https://make-a-demo-tool-in-rust.github.io
+github_url: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io
+github_code_url: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code
+
+license_name: do-whatever-you-want
+license_url: https://creativecommons.org/publicdomain/zero/1.0/

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title><%= discover_page_title %></title>
+
+    <!-- Styles and fonts -->
+    <%= stylesheet_link_tag :epsilon %>
+    <%= stylesheet_link_tag :syntax %>
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <%= javascript_include_tag  "themes/epsilon/javascripts/modernizr" %>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="<%= data.book.domain %>/feed.xml">
+  </head>
+
+  <body class="<%= page_classes %> epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+        <% link_to_if_exists '/index.html', :class => "invisilink" do %>
+          <% if ['index.html'].include? current_page.path %>
+            <h1 class="book-title"><%= data.book.title %></h1>
+          <% else %>
+            <span class="book-title"><%= data.book.title %></span>
+          <% end %>
+        <% end %>
+        <span class="book-author">by <%= data.book.author %></span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <%= yield %>
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><%= previous_link(data.tree) %></li>
+                <li><%= next_link(data.tree) %></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3><%= I18n.t('table_of_contents', default: 'Table of Contents') %></h3>
+                <nav role="navigation">
+                  <ul>
+                    <%= tree_to_html(data.tree) %>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="<%= data.book.github_url %>" target="_blank">source of this book</a>
+                    and
+                    <a href="<%= data.book.github_code_url %>" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3><%= I18n.t('license', default: 'License') %></h3>
+                <p>This book is licensed under the <a href="<%= data.book.license_url %>"><%= data.book.license_name %></a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <%= javascript_include_tag "themes/epsilon/javascripts/jquery.sidr.min" %>
+    <%= javascript_include_tag "themes/epsilon/javascripts/anchor.min" %>
+    <%= javascript_include_tag "themes/epsilon/javascripts/epsilon" %>
+
+    <% if build? %>
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+    <% end %>
+  </body>
+</html>
