@@ -4,6 +4,12 @@ title: 1.2 ops.rs - Operators
 
 # 1.2 ops.rs - Operators
 
+In the [source repo][code] you will see an **ops_unix.rs** and
+**ops_windows.rs**. The only difference is that the `extern` functions use the
+`sysv64` ABI on Linux and Mac, while they use the `C` ABI on Windows.
+
+[code]: https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit/tree/master/src
+
 The JIT function makes calls to functions in our Rust code. The operations are
 implemented by taking a pointer to `Context` as the first argument, and the
 other arguments can come from destructuring the `enum`.
@@ -20,7 +26,6 @@ Which is implemented as:
 ~~~ rust
 // ops.rs
 
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 impl Ops for Context {
 
     /// We use `.is_running` as the break condition for the main drawing loop.
@@ -52,11 +57,13 @@ So we have to anticipate that convention when putting in the `x86` instructions,
 and the Rust compiler also has to know what convention to use for the `extern`
 function on the given OS and arch.
 
-When writing the `extern` functions, we just have to tag it accordingly. On
-Linux for `x86_64`, it's `sysv64` for the [System V AMD64 ABI][sysv64].
-
-{::comment}
-// TODO windows and mac extern example
-{:/comment}
+When writing the `extern` functions, we just have to tag it accordingly. We only
+target `x86_64`. On Linux and Mac the ABI is `sysv64` for
+the [System V AMD64 ABI][sysv64], and on Windows it is `C` which effecively
+means the [Windows x64 calling convention][win-x64].
 
 When writing the JIT, there will be a wee bit more documentation-digging.
+
+[sysv64]: https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
+[win-x64]: https://msdn.microsoft.com/en-us/library/7kcdt6fy.aspx
+

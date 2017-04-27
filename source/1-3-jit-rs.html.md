@@ -2,25 +2,19 @@
 title: 1.3 jit.rs - A hand-made function
 ---
 
-{::comment}
-TODO windows and Mac
-{:/comment}
-
 # 1.3 jit.rs - A hand-made function
 
 - [Allocating memory](#allocating-memory)
 - [Filling it with instructions](#filling-it-with-instructions)
 - [Endianness](#endianness)
 - [Operator enums to x86](#operator-enums-to-x86)
+- [Calling conventions](#calling-conventions)
 - [Ops breakdown: Print, Exit, Draw](#ops-breakdown-print-exit-draw)
   - [Op::Print](#opprint)
   - [Op::Exit(f32)](#opexitf32)
   - [Op::Draw(u8, u8, f32)](#opdrawu8-u8-f32)
 - [Running the JIT](#running-the-jit)
 - [Drop](#drop)
-
-**NOTE: The x86 details are Linux x86_64 at the moment, but I want to extend
-this for Windows and Mac x86_64 as well.**
 
 Using the JIT goes as follows:
 
@@ -69,8 +63,8 @@ The allocated memory block has to be aligned on a boundary of 16 bytes,
 otherwise we won't be able to use it as an executable function on both Windows,
 Mac and Linux.
 
-`libc::malloc()` simply allocates a block at the next convenient address, and
-doesn't guarantee any kind of alignment.
+On Linux and Mac, `libc::malloc()` simply allocates a block at the next
+convenient address, and doesn't guarantee any kind of alignment.
 
 In the [libc manual][libc-manual] we find *3.2.3.6 Allocating Aligned Memory
 Blocks*, which describes `posix_memalign()`. The function signature is:
@@ -94,6 +88,7 @@ to transmute this to a `*mut u8` Rust type, then we are good to go.
 
 impl JitMemory {
     /// Allocates read-write memory aligned on a 16 byte boundary.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub fn new(num_pages: usize) -> JitMemory {
         let size: usize = num_pages * PAGE_SIZE;
         let addr: *mut u8;
@@ -128,6 +123,61 @@ impl JitMemory {
 }
 ~~~
 
+On Windows, we can use [VirtualAlloc][virtualAlloc-doc], the function signature is:
+
+~~~ cpp
+LPVOID WINAPI VirtualAlloc(
+  _In_opt_ LPVOID lpAddress,
+  _In_     SIZE_T dwSize,
+  _In_     DWORD  flAllocationType,
+  _In_     DWORD  flProtect
+);
+~~~
+
+[virtualAlloc-doc]: https://msdn.microsoft.com/en-us/library/windows/desktop/aa366887(v=vs.85).aspx
+
+And so the equivalent `JitMemory::new()` for Windows:
+
+~~~ rust
+// jit.rs
+
+impl JitMemory {
+    #[cfg(target_os = "windows")]
+    pub fn new(num_pages: usize) -> JitMemory {
+        let size: usize = num_pages * PAGE_SIZE;
+        let addr: *mut u8;
+
+        unsafe {
+            // Take a pointer
+            let raw_addr: *mut winapi::c_void;
+
+            // Allocate aligned to page size
+            raw_addr = kernel32::VirtualAlloc(
+                ptr::null_mut(),
+                size as u64,
+                winapi::MEM_RESERVE | winapi::MEM_COMMIT,
+                winapi::winnt::PAGE_READWRITE);
+
+            if raw_addr == 0 as *mut winapi::c_void {
+                panic!("Couldn't allocate memory.");
+            }
+
+            // NOTE no FillMemory() or SecureZeroMemory() in the kernel32 crate
+
+            // Transmute the c_void pointer to a Rust u8 pointer
+            addr = mem::transmute(raw_addr);
+
+        }
+
+        JitMemory {
+            addr: addr,
+            size: size,
+            offset: 0,
+        }
+    }
+}
+~~~
+
 ## Filling it with instructions
 
 The `JitAssembler` trait describes what `JitMemory` will have to implement so
@@ -143,13 +193,13 @@ Eventually `to_jit_fn()` marks the memory block as executable and returns a
 
 pub trait JitAssembler {
 
-    /// Fills the memory block with `x86` instructions while iterating over a
-    /// list of `Operator` enums.
-    fn fill_jit(&mut self, context: &mut Context, operators: &Vec<Operator>);
-
     /// Marks the memory block as executable and returns a `JitFn` containing
     /// that address.
     fn to_jit_fn(&mut self) -> JitFn;
+
+    /// Fills the memory block with `x86` instructions while iterating over a
+    /// list of `Operator` enums.
+    fn fill_jit(&mut self, context: &mut Context, operators: &Vec<Op>);
 
     /// Writes one byte to the memory at the current index offset and increments
     /// the offset.
@@ -233,7 +283,7 @@ fn fill_jit(&mut self, context: &mut Context, operators: &Vec<Operator>);
 ~~~
 
 By convention we have to start our program with the function prologue and end
-with the epilogue. If you were writing assembly:
+with the epilogue. If you were writing assembly in Linux or Mac:
 
 ~~~ asm
 ; prologue
@@ -264,6 +314,7 @@ For example the `push_rbp()` and `mov_rbp_rsp()` would be:
 
 ~~~ rust
 // jit.rs
+
 impl JitMemory {
     pub fn push_rbp(&mut self) {
         self.push_u8(0x55);
@@ -285,7 +336,7 @@ function, and in between we can implement action and excitement!
 
 impl JitAssembler for JitMemory {
 
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn fill_jit(&mut self, context: &mut Context, operators: &Vec<Op>) {
         // prologue
         self.push_rbp();
@@ -312,16 +363,38 @@ impl JitAssembler for JitMemory {
 }
 ~~~
 
-## Ops breakdown: Print, Exit, Draw
+## Calling conventions
+
+### Linux and Mac
 
 The Linux `x86_64` ABI is `sysv64`, the first few arguments are passed in
 registers, any remaining ones are passed on the stack.
 
-The first six integer arguments are passed in:
+The **first six** integer arguments are passed in:
 
     rdi, rsi, rdx, rcx, r8, r9
 
 Floating-point arguments are passed in `xmm0` - `xmm7`.
+
+The function prologue and epilogue will be:
+
+~~~ asm
+; prologue
+push rbp
+mov rbp, rsp
+
+; function body
+
+; - put function arguments in registers
+; - put the Rust function pointer in rax
+
+call rax
+
+; epilogue
+mov rsp, rbp
+pop rbp
+ret
+~~~
 
 The `rsp` register must point to an address on a 16-byte boundary before the
 `call` jumps. Remember that `call` will `push rdi`, moving `rsp` with -8 bytes
@@ -344,14 +417,59 @@ we would have to clean up (the stack) by adding to the address value of `rsp`.
 But there is no cleaning to do at this time and we can just finish after the
 call.
 
+### Windows
+
+In Windows x64 only the **first four** arguments can be passed in registers.
+
+Integer arguments:
+
+    rcx, rdx, r8, r9
+
+Floating-point arguments can be passed in `xmm0` - `xmm3`.
+
+The arguments are numbered by their argument position, and so for example if the
+third argument is a float and the fourth is an integer, the third will be taken
+from `xmm2` and the fourth will be taken from `r9`.
+
+In Windows x64 the function prologue and epilogue the `rsp` doesn't have to be
+pushed on the stack.
+
+However, if your function is going to make a `call`, the `rsp` still has to be
+16-byte aligned.
+
+We move the `rsp` with -8 at the beginning of our function so that when the
+`call` happens, `rsp` is aligned. Then at the end we restore the `rsp` position
+by adding 8.
+
+~~~ asm
+; prologue
+sup rbp, 8
+
+; function body
+
+; - put function arguments in registers
+; - put the Rust function pointer in rax
+
+call rax
+
+; epilogue
+add rsp, 8
+ret
+~~~
+
+## Ops breakdown: Print, Exit, Draw
+
 ### Op::Print
 
 `Op::Print` is a simple business. Remember that we want to call from the JIT to
 a Rust function, where `&self` is a `&Context`, so the first argument is that
 pointer address (integer value).
 
+On Linux and Mac the operator's Rust functions will be `sysv64` on Windows they
+will be `C`, that's the only difference.
+
 ~~~ rust
-// ops.rs
+// ops_unix.rs
 
 impl Ops for Context {
 
@@ -370,6 +488,7 @@ And so in `fill_jit()`:
 ~~~ rust
 // jit.rs
 
+// Linux and Mac
 Op::Print => {
     // rdi: pointer to Context (pointer is an integer value)
     self.movabs_rdi_u64( unsafe { mem::transmute(context as *mut _) });
@@ -382,6 +501,17 @@ Op::Print => {
     // call the function address in rax
     self.call_rax();
 },
+
+// ...
+
+// Windows
+Op::Print => {
+    self.movabs_rcx_u64( unsafe { mem::transmute(context as *mut _) });
+    self.movabs_rax_u64( unsafe { mem::transmute(
+        Ops::print as extern "C" fn(&Context)
+    )});
+    self.call_rax();
+},
 ~~~
 
 ### Op::Exit(f32)
@@ -392,7 +522,7 @@ bool in the `Context`.
 The `Exit(f32)` operator will translate to a call to `exit()`:
 
 ~~~ rust
-// ops.rs
+// ops_unix.rs
 
 impl Ops for Context {
     extern "sysv64" fn exit(&mut self, limit: f32) {
@@ -409,6 +539,7 @@ pointer, we also have to pass a floating point argument.
 ~~~ rust
 // jit.rs
 
+// Linux and Mac
 Op::Exit(limit) => {
     // rdi: pointer to Context (pointer is an integer value)
     self.movabs_rdi_u64( unsafe { mem::transmute(context as *mut _) });
@@ -424,6 +555,20 @@ Op::Exit(limit) => {
     // call the function address in rax
     self.call_rax();
 },
+
+// ...
+
+// Windows
+Op::Exit(limit) => {
+    self.movabs_rcx_u64( unsafe { mem::transmute(context as *mut _) });
+    self.movss_xmm_n_f32(1, limit);
+
+    self.movabs_rax_u64( unsafe { mem::transmute(
+        Ops::exit as extern "C" fn(&mut Context, f32)
+    ) });
+
+    self.call_rax();
+},
 ~~~
 
 ### Op::Draw(u8, u8, f32)
@@ -433,6 +578,7 @@ Great! For this we are passing a mixture of arguments as well:
 ~~~ rust
 // jit.rs
 
+// Linux and Mac
 Op::Draw(sprite_idx, offset, speed) => {
     // rdi: pointer to Context (pointer is an integer value)
     self.movabs_rdi_u64( unsafe { mem::transmute(context as *mut _) });
@@ -445,6 +591,22 @@ Op::Draw(sprite_idx, offset, speed) => {
 
     self.movabs_rax_u64( unsafe { mem::transmute(
         Ops::draw as extern "sysv64" fn(&mut Context, u8, u8, f32)
+    )});
+    self.call_rax();
+},
+
+// ...
+
+// Windows
+
+Op::Draw(sprite_idx, offset, speed) => {
+    self.movabs_rcx_u64( unsafe { mem::transmute(context as *mut _) });
+    self.movabs_rdx_u64(sprite_idx as u64);
+    self.movabs_r8_u64(offset as u64);
+    self.movss_xmm_n_f32(3, speed);
+
+    self.movabs_rax_u64( unsafe { mem::transmute(
+        Ops::draw as extern "C" fn(&mut Context, u8, u8, f32)
     )});
     self.call_rax();
 },
@@ -478,25 +640,48 @@ impl JitFn {
 ## Drop
 
 Since we allocated this piece of memory manually, we are also responsible for
-freeing it. `libc::munmap` will do the job. The libc manual tells us the signature:
+freeing it. `libc::munmap` and `kernel32::VirtualFree()` will do the job. The
+signatures:
 
-~~~ c
+~~~ cpp
+// Linux and Mac
 int munmap (void *addr, size_t length)
+
+// Windows
+BOOL WINAPI VirtualFree(
+  _In_ LPVOID lpAddress,
+  _In_ SIZE_T dwSize,
+  _In_ DWORD  dwFreeType
+);
 ~~~
 
 The `Drop` trait is used to implement actions when a variable goes out of scope,
 so let's implement that for `JitMemory` and `JitFn`:
 
 ~~~ rust
+// jit.rs
+
 impl Drop for JitMemory {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn drop(&mut self) {
         unsafe { libc::munmap(self.addr as *mut _, self.size); }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn drop(&mut self) {
+        unsafe { kernel32::VirtualFree(self.addr as *mut _, 0, winapi::MEM_RELEASE); }
     }
 }
 
 impl Drop for JitFn {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn drop(&mut self) {
         unsafe { libc::munmap(self.addr as *mut _, self.size); }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn drop(&mut self) {
+        unsafe { kernel32::VirtualFree(self.addr as *mut _, 0, winapi::MEM_RELEASE); }
     }
 }
 ~~~

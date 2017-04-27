@@ -33,3 +33,5 @@ title: Reference Docs
 [calls-gas]: http://cs.lmu.edu/~ray/notes/gasexamples/
 [x86-64-ref-op]: http://ref.x86asm.net/coder64.html
 [x86-64-ref-abc]: http://ref.x86asm.net/coder64-abc.html
+
+[win-x64]: https://msdn.microsoft.com/en-us/library/7kcdt6fy.aspx

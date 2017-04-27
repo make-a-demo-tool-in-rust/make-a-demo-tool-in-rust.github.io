@@ -10,12 +10,6 @@ summary_image_alt: "fish in a jit"
 {::comment}
 ## Tasks
 
-TODO recommend gameprogrammingpatterns bytecode chapter
-
-TODO recommend other JIT examples and tutorials, see jit.org
-
-TODO windows and Mac
-
 ## Notes
 
 - [jit.org](~/org/notes/jit.org)
@@ -37,13 +31,19 @@ TODO windows and Mac
 
 Also check out the [Assembly Tutorial](/assembly-tutorial.html) for a quick start on that.
 
-Follow along with the code in the [1-fish-in-a-jit/src][code] folder.
+Follow along with the code in the [fish-in-a-jit/src][code] folder.
 
-[code]: https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code/tree/master/1-fish-in-a-jit/src
+[code]: https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit/tree/master/src
 
 The code here will be only snippets to help the reading, this whole thing will
 make more sense if you have the sources open in a text editor or another browser
 window.
+
+Allow me to mention two excellent tutorials without which I wouldn't have gotten
+anywhere:
+
+- [A Basic Just-In-Time Compiler - Chris Wellons](http://nullprogram.com/blog/2015/03/19/)
+- [Building a simple JIT in Rust - Jonathan Turner](https://www.jonathanturner.org/2015/12/building-a-simple-jit-in-rust.html)
 
 ## The JIT function
 
@@ -101,16 +101,14 @@ We are going to be using Rust from the **nightly** channel.
 curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 ~~~
 
-Clone, compile and run the example:
+On Windows, find the link on the above page for **rustup-init.exe**, download,
+run, and in the text dialog select the **nightly** channel to install.
+
+At that point you are ready to clone, compile and run the code for the first
+chapter:
 
 ~~~
-git clone https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code
-cd make-a-demo-tool-in-rust-code
-cd 1-fish-in-a-jit
+git clone https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit
+cd fish-in-a-jit
 cargo run --example fish-jit
 ~~~
-
-**NOTE:** At the moment this is **only Linux x86_64** because the JIT is arch
-specific. There is no reason why it shouldn't work on Windows and Mac though, so
-I want to go over this again and extend it for Windows and Mac x86_64 as well.
-
