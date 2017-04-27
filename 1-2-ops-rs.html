@@ -42,6 +42,10 @@
             <div class="main-content-source">
               <h1 id="opsrs---operators">1.2 ops.rs - Operators</h1>
 
+<p>In the <a href="https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit/tree/master/src">source repo</a> you will see an <strong>ops_unix.rs</strong> and
+<strong>ops_windows.rs</strong>. The only difference is that the <code>extern</code> functions use the
+<code>sysv64</code> ABI on Linux and Mac, while they use the <code>C</code> ABI on Windows.</p>
+
 <p>The JIT function makes calls to functions in our Rust code. The operations are
 implemented by taking a pointer to <code>Context</code> as the first argument, and the
 other arguments can come from destructuring the <code>enum</code>.</p>
@@ -55,7 +59,6 @@ a function call:</p>
 
 <pre class="highlight rust"><code><span class="c">// ops.rs</span>
 
-<span class="cp">#[cfg(all(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_arch</span> <span class="cp">=</span> <span class="s">"x86_64"</span><span class="cp">))]</span>
 <span class="k">impl</span> <span class="n">Ops</span> <span class="k">for</span> <span class="n">Context</span> <span class="p">{</span>
 
     <span class="c">/// We use `.is_running` as the break condition for the main drawing loop.</span>
@@ -86,12 +89,13 @@ same general-purpose processor? Let go and move on.</p>
 and the Rust compiler also has to know what convention to use for the <code>extern</code>
 function on the given OS and arch.</p>
 
-<p>When writing the <code>extern</code> functions, we just have to tag it accordingly. On
-Linux for <code>x86_64</code>, it’s <code>sysv64</code> for the [System V AMD64 ABI][sysv64].</p>
-
-<!-- // TODO windows and mac extern example -->
+<p>When writing the <code>extern</code> functions, we just have to tag it accordingly. We only
+target <code>x86_64</code>. On Linux and Mac the ABI is <code>sysv64</code> for
+the <a href="https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI">System V AMD64 ABI</a>, and on Windows it is <code>C</code> which effecively
+means the <a href="https://msdn.microsoft.com/en-us/library/7kcdt6fy.aspx">Windows x64 calling convention</a>.</p>
 
 <p>When writing the JIT, there will be a wee bit more documentation-digging.</p>
+
 
             </div>
             <nav class="main-content-nav clearfix" role="navigation">

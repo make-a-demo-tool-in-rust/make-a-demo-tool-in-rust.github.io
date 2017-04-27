@@ -40,15 +40,14 @@
 
           <section class="main-content" role="main">
             <div class="main-content-source">
-              <!-- TODO windows and Mac -->
-
-<h1 id="jitrs---a-hand-made-function">1.3 jit.rs - A hand-made function</h1>
+              <h1 id="jitrs---a-hand-made-function">1.3 jit.rs - A hand-made function</h1>
 
 <ul>
   <li><a href="#allocating-memory">Allocating memory</a></li>
   <li><a href="#filling-it-with-instructions">Filling it with instructions</a></li>
   <li><a href="#endianness">Endianness</a></li>
   <li><a href="#operator-enums-to-x86">Operator enums to x86</a></li>
+  <li><a href="#calling-conventions">Calling conventions</a></li>
   <li><a href="#ops-breakdown-print-exit-draw">Ops breakdown: Print, Exit, Draw</a>
     <ul>
       <li><a href="#opprint">Op::Print</a></li>
@@ -59,9 +58,6 @@
   <li><a href="#running-the-jit">Running the JIT</a></li>
   <li><a href="#drop">Drop</a></li>
 </ul>
-
-<p><strong>NOTE: The x86 details are Linux x86_64 at the moment, but I want to extend
-this for Windows and Mac x86_64 as well.</strong></p>
 
 <p>Using the JIT goes as follows:</p>
 
@@ -110,8 +106,8 @@ offset where we are going to write the next byte.</p>
 otherwise we won’t be able to use it as an executable function on both Windows,
 Mac and Linux.</p>
 
-<p><code>libc::malloc()</code> simply allocates a block at the next convenient address, and
-doesn’t guarantee any kind of alignment.</p>
+<p>On Linux and Mac, <code>libc::malloc()</code> simply allocates a block at the next
+convenient address, and doesn’t guarantee any kind of alignment.</p>
 
 <p>In the <a href="https://www.gnu.org/software/libc/manual/">libc manual</a> we find <em>3.2.3.6 Allocating Aligned Memory
 Blocks</em>, which describes <code>posix_memalign()</code>. The function signature is:</p>
@@ -132,6 +128,7 @@ to transmute this to a <code>*mut u8</code> Rust type, then we are good to go.</
 
 <span class="k">impl</span> <span class="n">JitMemory</span> <span class="p">{</span>
     <span class="c">/// Allocates read-write memory aligned on a 16 byte boundary.</span>
+    <span class="cp">#[cfg(any(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_os</span> <span class="cp">=</span> <span class="s">"macos"</span><span class="cp">))]</span>
     <span class="k">pub</span> <span class="k">fn</span> <span class="nf">new</span><span class="p">(</span><span class="n">num_pages</span><span class="p">:</span> <span class="nb">usize</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">JitMemory</span> <span class="p">{</span>
         <span class="k">let</span> <span class="n">size</span><span class="p">:</span> <span class="nb">usize</span> <span class="o">=</span> <span class="n">num_pages</span> <span class="o">*</span> <span class="n">PAGE_SIZE</span><span class="p">;</span>
         <span class="k">let</span> <span class="n">addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">;</span>
@@ -165,6 +162,55 @@ to transmute this to a <code>*mut u8</code> Rust type, then we are good to go.</
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre>
+<p>On Windows, we can use <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/aa366887(v=vs.85).aspx">VirtualAlloc</a>, the function signature is:</p>
+
+<pre class="highlight cpp"><code><span class="n">LPVOID</span> <span class="n">WINAPI</span> <span class="n">VirtualAlloc</span><span class="p">(</span>
+  <span class="n">_In_opt_</span> <span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+  <span class="n">_In_</span>     <span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+  <span class="n">_In_</span>     <span class="n">DWORD</span>  <span class="n">flAllocationType</span><span class="p">,</span>
+  <span class="n">_In_</span>     <span class="n">DWORD</span>  <span class="n">flProtect</span>
+<span class="p">);</span>
+</code></pre>
+<p>And so the equivalent <code>JitMemory::new()</code> for Windows:</p>
+
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">impl</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="cp">#[cfg(target_os</span> <span class="cp">=</span> <span class="s">"windows"</span><span class="cp">)]</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">new</span><span class="p">(</span><span class="n">num_pages</span><span class="p">:</span> <span class="nb">usize</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">JitMemory</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="n">size</span><span class="p">:</span> <span class="nb">usize</span> <span class="o">=</span> <span class="n">num_pages</span> <span class="o">*</span> <span class="n">PAGE_SIZE</span><span class="p">;</span>
+        <span class="k">let</span> <span class="n">addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nb">u8</span><span class="p">;</span>
+
+        <span class="k">unsafe</span> <span class="p">{</span>
+            <span class="c">// Take a pointer</span>
+            <span class="k">let</span> <span class="n">raw_addr</span><span class="p">:</span> <span class="o">*</span><span class="k">mut</span> <span class="nn">winapi</span><span class="p">::</span><span class="nb">c_void</span><span class="p">;</span>
+
+            <span class="c">// Allocate aligned to page size</span>
+            <span class="n">raw_addr</span> <span class="o">=</span> <span class="nn">kernel32</span><span class="p">::</span><span class="nf">VirtualAlloc</span><span class="p">(</span>
+                <span class="nn">ptr</span><span class="p">::</span><span class="nf">null_mut</span><span class="p">(),</span>
+                <span class="n">size</span> <span class="k">as</span> <span class="nb">u64</span><span class="p">,</span>
+                <span class="nn">winapi</span><span class="p">::</span><span class="n">MEM_RESERVE</span> <span class="p">|</span> <span class="nn">winapi</span><span class="p">::</span><span class="n">MEM_COMMIT</span><span class="p">,</span>
+                <span class="nn">winapi</span><span class="p">::</span><span class="nn">winnt</span><span class="p">::</span><span class="n">PAGE_READWRITE</span><span class="p">);</span>
+
+            <span class="k">if</span> <span class="n">raw_addr</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="nn">winapi</span><span class="p">::</span><span class="nb">c_void</span> <span class="p">{</span>
+                <span class="nd">panic!</span><span class="p">(</span><span class="s">"Couldn't allocate memory."</span><span class="p">);</span>
+            <span class="p">}</span>
+
+            <span class="c">// NOTE no FillMemory() or SecureZeroMemory() in the kernel32 crate</span>
+
+            <span class="c">// Transmute the c_void pointer to a Rust u8 pointer</span>
+            <span class="n">addr</span> <span class="o">=</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">raw_addr</span><span class="p">);</span>
+
+        <span class="p">}</span>
+
+        <span class="n">JitMemory</span> <span class="p">{</span>
+            <span class="n">addr</span><span class="p">:</span> <span class="n">addr</span><span class="p">,</span>
+            <span class="n">size</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="n">offset</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
 <h2 id="filling-it-with-instructions">Filling it with instructions</h2>
 
 <p>The <code>JitAssembler</code> trait describes what <code>JitMemory</code> will have to implement so
@@ -179,13 +225,13 @@ Eventually <code>to_jit_fn()</code> marks the memory block as executable and ret
 
 <span class="k">pub</span> <span class="k">trait</span> <span class="n">JitAssembler</span> <span class="p">{</span>
 
-    <span class="c">/// Fills the memory block with `x86` instructions while iterating over a</span>
-    <span class="c">/// list of `Operator` enums.</span>
-    <span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Operator</span><span class="o">&gt;</span><span class="p">);</span>
-
     <span class="c">/// Marks the memory block as executable and returns a `JitFn` containing</span>
     <span class="c">/// that address.</span>
     <span class="k">fn</span> <span class="nf">to_jit_fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="n">JitFn</span><span class="p">;</span>
+
+    <span class="c">/// Fills the memory block with `x86` instructions while iterating over a</span>
+    <span class="c">/// list of `Operator` enums.</span>
+    <span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;</span><span class="p">);</span>
 
     <span class="c">/// Writes one byte to the memory at the current index offset and increments</span>
     <span class="c">/// the offset.</span>
@@ -287,7 +333,7 @@ can manipulate the application’s state.</p>
 <pre class="highlight rust"><code><span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Operator</span><span class="o">&gt;</span><span class="p">);</span>
 </code></pre>
 <p>By convention we have to start our program with the function prologue and end
-with the epilogue. If you were writing assembly:</p>
+with the epilogue. If you were writing assembly in Linux or Mac:</p>
 
 <pre class="highlight plaintext"><code>; prologue
 push rbp
@@ -313,6 +359,7 @@ if writing assembly.</p>
 <p>For example the <code>push_rbp()</code> and <code>mov_rbp_rsp()</code> would be:</p>
 
 <pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
 <span class="k">impl</span> <span class="n">JitMemory</span> <span class="p">{</span>
     <span class="k">pub</span> <span class="k">fn</span> <span class="nf">push_rbp</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">self</span><span class="nf">.push_u8</span><span class="p">(</span><span class="mi">0x55</span><span class="p">);</span>
@@ -332,7 +379,7 @@ function, and in between we can implement action and excitement!</p>
 
 <span class="k">impl</span> <span class="n">JitAssembler</span> <span class="k">for</span> <span class="n">JitMemory</span> <span class="p">{</span>
 
-    <span class="cp">#[cfg(all(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_arch</span> <span class="cp">=</span> <span class="s">"x86_64"</span><span class="cp">))]</span>
+    <span class="cp">#[cfg(any(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_os</span> <span class="cp">=</span> <span class="s">"macos"</span><span class="cp">))]</span>
     <span class="k">fn</span> <span class="nf">fill_jit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="n">operators</span><span class="p">:</span> <span class="o">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
         <span class="c">// prologue</span>
         <span class="k">self</span><span class="nf">.push_rbp</span><span class="p">();</span>
@@ -358,17 +405,37 @@ function, and in between we can implement action and excitement!</p>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre>
-<h2 id="ops-breakdown-print-exit-draw">Ops breakdown: Print, Exit, Draw</h2>
+<h2 id="calling-conventions">Calling conventions</h2>
+
+<h3 id="linux-and-mac">Linux and Mac</h3>
 
 <p>The Linux <code>x86_64</code> ABI is <code>sysv64</code>, the first few arguments are passed in
 registers, any remaining ones are passed on the stack.</p>
 
-<p>The first six integer arguments are passed in:</p>
+<p>The <strong>first six</strong> integer arguments are passed in:</p>
 
 <pre class="highlight plaintext"><code>rdi, rsi, rdx, rcx, r8, r9
 </code></pre>
 <p>Floating-point arguments are passed in <code>xmm0</code> - <code>xmm7</code>.</p>
 
+<p>The function prologue and epilogue will be:</p>
+
+<pre class="highlight plaintext"><code>; prologue
+push rbp
+mov rbp, rsp
+
+; function body
+
+; - put function arguments in registers
+; - put the Rust function pointer in rax
+
+call rax
+
+; epilogue
+mov rsp, rbp
+pop rbp
+ret
+</code></pre>
 <p>The <code>rsp</code> register must point to an address on a 16-byte boundary before the
 <code>call</code> jumps. Remember that <code>call</code> will <code>push rdi</code>, moving <code>rsp</code> with -8 bytes
 immediately before the jump.</p>
@@ -390,13 +457,56 @@ we would have to clean up (the stack) by adding to the address value of <code>rs
 <p>But there is no cleaning to do at this time and we can just finish after the
 call.</p>
 
+<h3 id="windows">Windows</h3>
+
+<p>In Windows x64 only the <strong>first four</strong> arguments can be passed in registers.</p>
+
+<p>Integer arguments:</p>
+
+<pre class="highlight plaintext"><code>rcx, rdx, r8, r9
+</code></pre>
+<p>Floating-point arguments can be passed in <code>xmm0</code> - <code>xmm3</code>.</p>
+
+<p>The arguments are numbered by their argument position, and so for example if the
+third argument is a float and the fourth is an integer, the third will be taken
+from <code>xmm2</code> and the fourth will be taken from <code>r9</code>.</p>
+
+<p>In Windows x64 the function prologue and epilogue the <code>rsp</code> doesn’t have to be
+pushed on the stack.</p>
+
+<p>However, if your function is going to make a <code>call</code>, the <code>rsp</code> still has to be
+16-byte aligned.</p>
+
+<p>We move the <code>rsp</code> with -8 at the beginning of our function so that when the
+<code>call</code> happens, <code>rsp</code> is aligned. Then at the end we restore the <code>rsp</code> position
+by adding 8.</p>
+
+<pre class="highlight plaintext"><code>; prologue
+sup rbp, 8
+
+; function body
+
+; - put function arguments in registers
+; - put the Rust function pointer in rax
+
+call rax
+
+; epilogue
+add rsp, 8
+ret
+</code></pre>
+<h2 id="ops-breakdown-print-exit-draw">Ops breakdown: Print, Exit, Draw</h2>
+
 <h3 id="opprint">Op::Print</h3>
 
 <p><code>Op::Print</code> is a simple business. Remember that we want to call from the JIT to
 a Rust function, where <code>&amp;self</code> is a <code>&amp;Context</code>, so the first argument is that
 pointer address (integer value).</p>
 
-<pre class="highlight rust"><code><span class="c">// ops.rs</span>
+<p>On Linux and Mac the operator’s Rust functions will be <code>sysv64</code> on Windows they
+will be <code>C</code>, that’s the only difference.</p>
+
+<pre class="highlight rust"><code><span class="c">// ops_unix.rs</span>
 
 <span class="k">impl</span> <span class="n">Ops</span> <span class="k">for</span> <span class="n">Context</span> <span class="p">{</span>
 
@@ -413,6 +523,7 @@ pointer address (integer value).</p>
 
 <pre class="highlight rust"><code><span class="c">// jit.rs</span>
 
+<span class="c">// Linux and Mac</span>
 <span class="nn">Op</span><span class="p">::</span><span class="n">Print</span> <span class="k">=&gt;</span> <span class="p">{</span>
     <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
     <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
@@ -425,6 +536,17 @@ pointer address (integer value).</p>
     <span class="c">// call the function address in rax</span>
     <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
 <span class="p">},</span>
+
+<span class="c">// ...</span>
+
+<span class="c">// Windows</span>
+<span class="nn">Op</span><span class="p">::</span><span class="n">Print</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="k">self</span><span class="nf">.movabs_rcx_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">print</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"C"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Context</span><span class="p">)</span>
+    <span class="p">)});</span>
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
 </code></pre>
 <h3 id="opexitf32">Op::Exit(f32)</h3>
 
@@ -433,7 +555,7 @@ bool in the <code>Context</code>.</p>
 
 <p>The <code>Exit(f32)</code> operator will translate to a call to <code>exit()</code>:</p>
 
-<pre class="highlight rust"><code><span class="c">// ops.rs</span>
+<pre class="highlight rust"><code><span class="c">// ops_unix.rs</span>
 
 <span class="k">impl</span> <span class="n">Ops</span> <span class="k">for</span> <span class="n">Context</span> <span class="p">{</span>
     <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span> <span class="nf">exit</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">f32</span><span class="p">)</span> <span class="p">{</span>
@@ -448,6 +570,7 @@ pointer, we also have to pass a floating point argument.</p>
 
 <pre class="highlight rust"><code><span class="c">// jit.rs</span>
 
+<span class="c">// Linux and Mac</span>
 <span class="nn">Op</span><span class="p">::</span><span class="nf">Exit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
     <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
     <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
@@ -463,6 +586,20 @@ pointer, we also have to pass a floating point argument.</p>
     <span class="c">// call the function address in rax</span>
     <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
 <span class="p">},</span>
+
+<span class="c">// ...</span>
+
+<span class="c">// Windows</span>
+<span class="nn">Op</span><span class="p">::</span><span class="nf">Exit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="k">self</span><span class="nf">.movabs_rcx_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+    <span class="k">self</span><span class="nf">.movss_xmm_n_f32</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">);</span>
+
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">exit</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"C"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">f32</span><span class="p">)</span>
+    <span class="p">)</span> <span class="p">});</span>
+
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
 </code></pre>
 <h3 id="opdrawu8-u8-f32">Op::Draw(u8, u8, f32)</h3>
 
@@ -470,6 +607,7 @@ pointer, we also have to pass a floating point argument.</p>
 
 <pre class="highlight rust"><code><span class="c">// jit.rs</span>
 
+<span class="c">// Linux and Mac</span>
 <span class="nn">Op</span><span class="p">::</span><span class="nf">Draw</span><span class="p">(</span><span class="n">sprite_idx</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">speed</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
     <span class="c">// rdi: pointer to Context (pointer is an integer value)</span>
     <span class="k">self</span><span class="nf">.movabs_rdi_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
@@ -482,6 +620,22 @@ pointer, we also have to pass a floating point argument.</p>
 
     <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
         <span class="nn">Ops</span><span class="p">::</span><span class="n">draw</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"sysv64"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">f32</span><span class="p">)</span>
+    <span class="p">)});</span>
+    <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
+<span class="p">},</span>
+
+<span class="c">// ...</span>
+
+<span class="c">// Windows</span>
+
+<span class="nn">Op</span><span class="p">::</span><span class="nf">Draw</span><span class="p">(</span><span class="n">sprite_idx</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">speed</span><span class="p">)</span> <span class="k">=&gt;</span> <span class="p">{</span>
+    <span class="k">self</span><span class="nf">.movabs_rcx_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span><span class="n">context</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">)</span> <span class="p">});</span>
+    <span class="k">self</span><span class="nf">.movabs_rdx_u64</span><span class="p">(</span><span class="n">sprite_idx</span> <span class="k">as</span> <span class="nb">u64</span><span class="p">);</span>
+    <span class="k">self</span><span class="nf">.movabs_r8_u64</span><span class="p">(</span><span class="n">offset</span> <span class="k">as</span> <span class="nb">u64</span><span class="p">);</span>
+    <span class="k">self</span><span class="nf">.movss_xmm_n_f32</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">speed</span><span class="p">);</span>
+
+    <span class="k">self</span><span class="nf">.movabs_rax_u64</span><span class="p">(</span> <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">mem</span><span class="p">::</span><span class="nf">transmute</span><span class="p">(</span>
+        <span class="nn">Ops</span><span class="p">::</span><span class="n">draw</span> <span class="k">as</span> <span class="k">extern</span> <span class="s">"C"</span> <span class="k">fn</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">u8</span><span class="p">,</span> <span class="nb">f32</span><span class="p">)</span>
     <span class="p">)});</span>
     <span class="k">self</span><span class="nf">.call_rax</span><span class="p">();</span>
 <span class="p">},</span>
@@ -512,22 +666,45 @@ to be executed.</p>
 <h2 id="drop">Drop</h2>
 
 <p>Since we allocated this piece of memory manually, we are also responsible for
-freeing it. <code>libc::munmap</code> will do the job. The libc manual tells us the signature:</p>
+freeing it. <code>libc::munmap</code> and <code>kernel32::VirtualFree()</code> will do the job. The
+signatures:</p>
 
-<pre class="highlight c"><code><span class="kt">int</span> <span class="n">munmap</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">length</span><span class="p">)</span>
+<pre class="highlight cpp"><code><span class="c1">// Linux and Mac
+</span><span class="kt">int</span> <span class="n">munmap</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">length</span><span class="p">)</span>
+
+<span class="c1">// Windows
+</span><span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="n">VirtualFree</span><span class="p">(</span>
+  <span class="n">_In_</span> <span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+  <span class="n">_In_</span> <span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+  <span class="n">_In_</span> <span class="n">DWORD</span>  <span class="n">dwFreeType</span>
+<span class="p">);</span>
 </code></pre>
 <p>The <code>Drop</code> trait is used to implement actions when a variable goes out of scope,
 so let’s implement that for <code>JitMemory</code> and <code>JitFn</code>:</p>
 
-<pre class="highlight rust"><code><span class="k">impl</span> <span class="n">Drop</span> <span class="k">for</span> <span class="n">JitMemory</span> <span class="p">{</span>
+<pre class="highlight rust"><code><span class="c">// jit.rs</span>
+
+<span class="k">impl</span> <span class="n">Drop</span> <span class="k">for</span> <span class="n">JitMemory</span> <span class="p">{</span>
+    <span class="cp">#[cfg(any(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_os</span> <span class="cp">=</span> <span class="s">"macos"</span><span class="cp">))]</span>
     <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">libc</span><span class="p">::</span><span class="nf">munmap</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="k">self</span><span class="py">.size</span><span class="p">);</span> <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="cp">#[cfg(target_os</span> <span class="cp">=</span> <span class="s">"windows"</span><span class="cp">)]</span>
+    <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">kernel32</span><span class="p">::</span><span class="nf">VirtualFree</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nn">winapi</span><span class="p">::</span><span class="n">MEM_RELEASE</span><span class="p">);</span> <span class="p">}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 
 <span class="k">impl</span> <span class="n">Drop</span> <span class="k">for</span> <span class="n">JitFn</span> <span class="p">{</span>
+    <span class="cp">#[cfg(any(target_os</span> <span class="cp">=</span> <span class="s">"linux"</span><span class="cp">,</span> <span class="cp">target_os</span> <span class="cp">=</span> <span class="s">"macos"</span><span class="cp">))]</span>
     <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">libc</span><span class="p">::</span><span class="nf">munmap</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="k">self</span><span class="py">.size</span><span class="p">);</span> <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="cp">#[cfg(target_os</span> <span class="cp">=</span> <span class="s">"windows"</span><span class="cp">)]</span>
+    <span class="k">fn</span> <span class="k">drop</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span> <span class="k">self</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">unsafe</span> <span class="p">{</span> <span class="nn">kernel32</span><span class="p">::</span><span class="nf">VirtualFree</span><span class="p">(</span><span class="k">self</span><span class="py">.addr</span> <span class="k">as</span> <span class="o">*</span><span class="k">mut</span> <span class="n">_</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nn">winapi</span><span class="p">::</span><span class="n">MEM_RELEASE</span><span class="p">);</span> <span class="p">}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre>

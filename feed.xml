@@ -4,10 +4,30 @@
   <id>https://make-a-demo-tool-in-rust.github.io</id>
   <link href="https://make-a-demo-tool-in-rust.github.io"/>
   <link href="https://make-a-demo-tool-in-rust.github.io/feed.xml" rel="self"/>
-  <updated>2017-04-21T01:00:00+01:00</updated>
+  <updated>2017-04-27T01:00:00+01:00</updated>
   <author>
     <name>etd</name>
   </author>
+  <entry>
+    <title>Working on Linux, Mac and Windows</title>
+    <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html"/>
+    <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html</id>
+    <published>2017-04-27T01:00:00+01:00</published>
+    <updated>2017-04-27T17:18:54+01:00</updated>
+    <author>
+      <name>etd</name>
+    </author>
+    <content type="html">&lt;h1 id="working-on-linux-mac-and-windows"&gt;Working on Linux, Mac and Windows&lt;/h1&gt;
+
+&lt;p&gt;Chapter one &lt;a href="https://make-a-demo-tool-in-rust.github.io/1-0-fish-in-a-jit.html"&gt;Fish in a JIT&lt;/a&gt; is now cross-platform. Download the code from
+the repo and run the example:&lt;/p&gt;
+
+&lt;pre class="highlight plaintext"&gt;&lt;code&gt;git clone https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit
+cd fish-in-a-jit
+cargo run --example fish-jit
+&lt;/code&gt;&lt;/pre&gt;
+</content>
+  </entry>
   <entry>
     <title>Intro and first chapter, Fish in a JIT</title>
     <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html"/>

@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>1.5 ASCII fish example</title>
+    <title>Working on Linux, Mac and Windows</title>
 
     <!-- Styles and fonts -->
     <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
@@ -23,7 +23,7 @@
     <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
   </head>
 
-  <body class="x1-5-ascii-fish-example epsilon">
+  <body class="updates updates_2017-04-27-linux-mac-windows epsilon">
     <div class="page-wrapper">
 
       <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
@@ -40,41 +40,10 @@
 
           <section class="main-content" role="main">
             <div class="main-content-source">
-              <h1 id="ascii-fish-example">1.5 ASCII fish example</h1>
+              <h1 id="working-on-linux-mac-and-windows">Working on Linux, Mac and Windows</h1>
 
-<p><img src="/images/fish-jit-260d50b1.gif" alt="fish in a jit" /></p>
-
-<p>This is the <a href="https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit/blob/master/examples/fish-jit.rs">examples/fish-jit.rs</a> example using our custom little JIT lib.</p>
-
-<ol>
-  <li>This takes the <code>YAML</code> file below,</li>
-  <li>deserializes it into a <code>Dmo</code> struct,</li>
-  <li>allocates the JIT memory and fills it with instructions,</li>
-  <li>starts a <code>while</code> loop</li>
-  <li>calls the JIT function at every iteration</li>
-  <li>sleeps a bit and increments time.</li>
-</ol>
-
-<pre class="highlight yaml"><code><span class="c1"># examples/fish-demo.yml</span>
-
-<span class="na">operators</span><span class="pi">:</span>
-  <span class="pi">-</span> <span class="na">Clear</span><span class="pi">:</span> <span class="s">32</span>
-  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">3</span><span class="pi">,</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">0.3</span> <span class="pi">]</span>
-  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">5</span><span class="pi">,</span> <span class="nv">8.0</span> <span class="pi">]</span>
-  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">0</span><span class="pi">,</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">1.5</span> <span class="pi">]</span>
-  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">1</span><span class="pi">,</span> <span class="nv">30</span><span class="pi">,</span> <span class="nv">4.0</span> <span class="pi">]</span>
-  <span class="pi">-</span> <span class="na">Draw</span><span class="pi">:</span> <span class="pi">[</span> <span class="nv">2</span><span class="pi">,</span> <span class="nv">15</span><span class="pi">,</span> <span class="nv">6.0</span> <span class="pi">]</span>
-  <span class="pi">-</span> <span class="s">Print</span>
-  <span class="pi">-</span> <span class="na">Exit</span><span class="pi">:</span> <span class="s">30.0</span>
-
-<span class="na">context</span><span class="pi">:</span>
-  <span class="na">sprites</span><span class="pi">:</span>
-    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;(([°&gt;</span><span class="nv"> </span><span class="s">"</span>
-    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">&gt;&lt;&gt;</span><span class="nv"> </span><span class="s">"</span>
-    <span class="pi">-</span> <span class="s2">"</span><span class="nv"> </span><span class="s">}-&lt;ø&gt;</span><span class="nv"> </span><span class="s">"</span>
-    <span class="pi">-</span> <span class="s2">"</span><span class="s">¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,¸¸,,¸¸,,"</span>
-</code></pre>
-<p>Clone, compile and run:</p>
+<p>Chapter one <a href="https://make-a-demo-tool-in-rust.github.io/1-0-fish-in-a-jit.html">Fish in a JIT</a> is now cross-platform. Download the code from
+the repo and run the example:</p>
 
 <pre class="highlight plaintext"><code>git clone https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit
 cd fish-in-a-jit
@@ -84,8 +53,8 @@ cargo run --example fish-jit
             </div>
             <nav class="main-content-nav clearfix" role="navigation">
               <ul>
-                <li><a href="/1-4-bytecode-rs.html" class="previous">Previous</a></li>
-                <li><a href="/assembly-tutorial.html" class="next">Next</a></li>
+                <li></li>
+                <li></li>
               </ul>
             </nav>
           </section>
@@ -97,7 +66,7 @@ cargo run --example fish-jit
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child active'><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>

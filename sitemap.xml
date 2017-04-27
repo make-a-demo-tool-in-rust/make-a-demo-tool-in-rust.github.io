@@ -30,6 +30,10 @@
       <priority>0.5</priority>
     </url>
     <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html</loc>
       <priority>0.5</priority>
     </url>
