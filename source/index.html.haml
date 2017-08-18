@@ -15,7 +15,15 @@ title: "Home"
       - if page.data.summary
         %p= page.data.summary
       - if page.data.summary_image
-        %img{:src => "#{page.data.summary_image}", :alt => "#{page.data.summary_image_alt}"}
+        %p
+          %img{:src => "#{page.data.summary_image}",
+               :alt => "#{page.data.summary_image_alt}",
+               :style => "padding: 10px; border: 1px solid #c4c4c4;" }
+      - if page.data.diagram_image
+        %p
+          %img{:src => "#{page.data.diagram_image}",
+               :alt => "#{page.data.diagram_image_alt}",
+               :style => "padding: 10px; border: 1px solid #c4c4c4;" }
 
   %article
     %p Plans for the next chapters:
@@ -42,7 +50,7 @@ title: "Home"
     %span RSS Feed
 
 %section
-  - sitemap.resources.select{|page| page.data.categories && page.data.categories.include?('updates') }.sort_by{|n| n.data.date }.each do |page|
+  - sitemap.resources.select{|page| page.data.categories && page.data.categories.include?('updates') }.sort_by{|n| n.data.date }.reverse.each do |page|
     %article
       %span{:style => "padding-right: 0.5em;"}
         = page.date.strftime("%Y-%m-%d")

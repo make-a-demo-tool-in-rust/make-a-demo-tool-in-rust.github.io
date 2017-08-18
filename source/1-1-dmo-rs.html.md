@@ -15,12 +15,16 @@ We expect the text sprites in Unicode (more fun characters), so we use
 `Vec<char>` instead of a `Vec<u8>`. A `char` is 4-bytes to represent UTF-32
 encoding.
 
+The `Context` and `Vec<Operator>` are private to make them only accessible
+through API calls which should remember to rebuild the `JitFn` as well.
+
 ~~~ rust
 // src/dmo.rs
 
 pub struct Dmo {
-    pub context: Context,
-    pub operators: Vec<Operator>,
+    context: Context,
+    operators: Vec<Operator>,
+    jit_fn: JitFn,
 }
 
 pub struct Context {
@@ -93,10 +97,21 @@ impl Dmo {
 }
 ~~~
 
-That `Vec<u8>` will represent the whole demo which can be replayed by a small
-utility. We write the bytecode to disk, but the standalone replay doesn't even
-need to read files, just `include_bytes!()` at compile time, reconstruct the
-`Dmo` from it and ready to go.
+Two steps are necessary: First, the `Dmo` has to be assigned to a variable, then
+the JIT function is assembled.
+
+After assignment, the `Context` and `Operators` have a memory address which the
+JIT function will be able to use.
+
+~~~ rust
+let mut dmo = Dmo::from_bytecode(bytecode);
+dmo.build_jit_fn();
+~~~
+
+The bytecode is a `Vec<u8>` which represents the whole demo and can be replayed
+by a small utility. We write the bytecode to disk, but the standalone replay
+doesn't even need to read files, it is enough to `include_bytes!()` at compile
+time, reconstruct the `Dmo` and it's ready to go.
 
 ~~~ rust
 // examples/fish-standalone.rs
@@ -106,18 +121,14 @@ pub fn main() {
     let bytecode = include_bytes!("./fish-demo.dmo").to_vec();
 
     let mut dmo = Dmo::from_bytecode(bytecode);
-
-    let mut jm: JitMemory = JitMemory::new(1);
-    jm.fill_jit(&mut dmo.context, &dmo.operators);
-    let jit_fn = jm.to_jit_fn();
+    dmo.build_jit_fn();
 
     print!("\n");
 
-    while dmo.context.is_running {
-        jit_fn.run(&mut dmo.context);
-
+    while dmo.get_is_running() {
+        dmo.run_jit_fn();
         sleep(Duration::from_millis(10));
-        dmo.context.time += 0.01;
+        dmo.add_to_time(0.01);
     }
 
     print!("\n");

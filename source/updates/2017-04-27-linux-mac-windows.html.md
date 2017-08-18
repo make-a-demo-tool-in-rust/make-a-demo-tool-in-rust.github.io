@@ -1,6 +1,7 @@
 ---
 title: "Working on Linux, Mac and Windows"
 categories: [ "updates", ]
+date: 2017-04-27
 ---
 
 # Working on Linux, Mac and Windows

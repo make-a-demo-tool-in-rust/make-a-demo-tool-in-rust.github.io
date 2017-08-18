@@ -1,6 +1,7 @@
 ---
 title: "Intro and first chapter, Fish in a JIT"
 categories: [ "updates", ]
+date: 2017-04-21
 ---
 
 # Intro and first chapter, Fish in a JIT

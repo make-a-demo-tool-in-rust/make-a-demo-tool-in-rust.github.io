@@ -47,10 +47,10 @@ Instead of hard-coding the sequence of these operations, it is better to
 generate some code which will produce the graphics in real-time, and tune the
 code while you are looking at the result as the code is running.
 
-One way to do this would be with a JIT (Just-In-Time Compilation):
+Just-In-Time compilation (JIT) is one way to do this.
 
-There will be one function which we call at every frame, this will do all the
-drawing. We will build this function in the memory at runtime from a custom
+There is one function which we call at every frame, this does all the
+drawing. This function is assembled in the memory at runtime from a custom
 byte-code sequence which describes the operations to execute. This way, as soon
 as we change the byte-code, the function can be re-built in the memory and at
 the very next frame it can draw something completely different.

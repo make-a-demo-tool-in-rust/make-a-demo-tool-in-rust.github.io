@@ -31,11 +31,13 @@ impl Bytecode for Dmo {
         // - [u8]: sprite
         // ...
 
-        res.push(self.context.sprites.len() as u8);
+        let sprites = self.get_sprites();
+
+        res.push(sprites.len() as u8);
 
         // ASCII sprites can be unicode UTF-32, so expect the 4-byte char
         // instead of u8
-        for sprite in self.context.sprites.iter() {
+        for sprite in sprites.iter() {
             // length in chars, not in bytes
             res.push(sprite.chars().count() as u8);
 
@@ -113,10 +115,7 @@ impl Bytecode for Dmo {
         
         // ... and on and on until we reconstructed everything.
         
-        Dmo {
-            context: context,
-            operators: operators,
-        }
+        Dmo::new(context, operators)
     } 
 }
 ~~~

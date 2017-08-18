@@ -2,9 +2,11 @@
 title: 1. Fish in a JIT
 frontpage_toc: true
 frontpage_toc_idx: 1
-summary: Make a small thing with a JIT function that prints oneliner animated ASCII graphics.
+summary: Writing a small Just-In-Time (JIT) compilation library and using it to print oneliner animated ASCII graphics.
 summary_image: "/images/fish-jit-f100.jpg"
 summary_image_alt: "fish in a jit"
+diagram_image: "/images/fish-in-a-jit-diagram_crop.jpg"
+diagram_image_alt: "fish in a jit diagram"
 ---
 
 {::comment}
@@ -21,11 +23,17 @@ summary_image_alt: "fish in a jit"
 
 ![fish in a jit](/images/fish-jit.gif)
 
+![fish in a jit diagram](/images/fish-in-a-jit-diagram_w780.jpg)
+
+{::comment}
+TODO add hand drawn diagram
+{:/comment}
+
 ## Sections
 
 - [1.1 dmo.rs - State and content](/1-1-dmo-rs.html)
 - [1.2 ops.rs - Operators](/1-2-ops-rs.html)
-- [1.3 jit.rs - A hand-made function](/1-3-jit-rs.html)
+- [1.3 JIT - A hand-made function](/1-3-jit.html)
 - [1.4 bytecode.rs - Blob](/1-4-bytecode-rs.html)
 - [1.5 ASCII fish example](/1-5-ascii-fish-example.html)
 
@@ -51,8 +59,8 @@ Let's start by getting familiar with the JIT function idea.
 
 A function is an area of memory, where the bytes are CPU instructions. To design
 graphics in real-time, while it is running real-time, we ask the OS for a piece
-of memory, we put bytes there in hex like `48 83 EC 08` and tell the OS to
-execute whatever it finds on that memory address.
+of memory, we put bytes there in hex like `48 83 EC 08` (which is `sub rsp, 8`
+in asm) and tell the OS to execute whatever it finds on that memory address.
 
 The feedback is that it either works, or segfaults.
 
@@ -91,13 +99,14 @@ remembered to put one in.
 
 ## Compile and Run
 
-We are going to be using Rust from the **nightly** channel.
+This requires **nightly** Rust, last time I checked `7ac979d8c 2017-08-16`
+worked.
 
 [Install Rust nighly][rustup] if you haven't, on Linux and Mac it is simply:
 
 [rustup]: https://www.rust-lang.org/en-US/other-installers.html
 
-~~~
+~~~ bash
 curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 ~~~
 
@@ -107,8 +116,22 @@ run, and in the text dialog select the **nightly** channel to install.
 At that point you are ready to clone, compile and run the code for the first
 chapter:
 
-~~~
+~~~ bach
 git clone https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit
 cd fish-in-a-jit
+cargo run --example fish-jit
+~~~
+
+This is a simple enough project to compile in the future too, but if you have to
+compile it on a particular Rust version:
+
+~~~ bash
+rustup install nightly-2017-08-16
+rustup default nightly-2017-08-16-x86_64-unknown-linux-gnu
+~~~
+
+Then run the examples:
+
+~~~ bash
 cargo run --example fish-jit
 ~~~

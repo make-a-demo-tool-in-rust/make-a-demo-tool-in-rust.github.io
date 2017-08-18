@@ -44,7 +44,7 @@ set :markdown, :fenced_code_blocks => true, :smartypants => true
 activate :blog do |blog|
   blog[:prefix] = "updates"
   blog[:permalink] = "{year}-{month}-{day}-{title}.html"
-  #blog[:publish_future_dated] = true
+  blog[:publish_future_dated] = true
 end
 
 # Build-specific configuration
