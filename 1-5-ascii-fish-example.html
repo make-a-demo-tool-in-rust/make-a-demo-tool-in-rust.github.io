@@ -47,13 +47,43 @@
 <p>This is the <a href="https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit/blob/master/examples/fish-jit.rs">examples/fish-jit.rs</a> example using our custom little JIT lib.</p>
 
 <ol>
-  <li>This takes the <code>YAML</code> file below,</li>
-  <li>deserializes it into a <code>Dmo</code> struct,</li>
-  <li>allocates the JIT memory and fills it with instructions,</li>
-  <li>starts a <code>while</code> loop</li>
-  <li>calls the JIT function at every iteration</li>
-  <li>sleeps a bit and increments time.</li>
+  <li>Take the <code>YAML</code> file below,</li>
+  <li>deserialize it into a <code>Dmo</code> struct,</li>
+  <li>from that, build the JIT function for drawing (printing)</li>
+  <li>start a <code>while</code> loop</li>
+  <li>call the JIT function at every iteration</li>
+  <li>sleep a bit and increment time.</li>
 </ol>
+
+<pre class="highlight rust"><code><span class="c">// examples/fish-jit.rs</span>
+
+<span class="k">pub</span> <span class="k">fn</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c">// Read in at runtime, include path is relative to current directory, which</span>
+    <span class="c">// is the crate root if running this example with "cargo run --example fish-jit".</span>
+    <span class="k">let</span> <span class="n">text</span> <span class="o">=</span> <span class="nf">file_to_string</span><span class="p">(</span><span class="o">&amp;</span><span class="nn">PathBuf</span><span class="p">::</span><span class="nf">from</span><span class="p">(</span><span class="s">"./examples/fish-demo.yml"</span><span class="p">))</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="k">let</span> <span class="n">d</span> <span class="o">=</span> <span class="nn">Dmo</span><span class="p">::</span><span class="nf">new_from_yml_str</span><span class="p">(</span><span class="o">&amp;</span><span class="n">text</span><span class="p">)</span><span class="nf">.unwrap</span><span class="p">();</span>
+    <span class="k">let</span> <span class="n">bytecode</span> <span class="o">=</span> <span class="n">d</span><span class="nf">.to_bytecode</span><span class="p">();</span>
+
+    <span class="c">// Write the bytecode blob while we are at it, for the standalone example to</span>
+    <span class="c">// use with include_bytes!()</span>
+    <span class="n">d</span><span class="nf">.write_to_blob</span><span class="p">(</span><span class="o">&amp;</span><span class="nn">PathBuf</span><span class="p">::</span><span class="nf">from</span><span class="p">(</span><span class="s">"./examples/fish-demo.dmo"</span><span class="p">))</span><span class="nf">.unwrap</span><span class="p">();</span>
+
+    <span class="c">// A Dmo from the bytecode directly, for testing that.</span>
+    <span class="k">let</span> <span class="k">mut</span> <span class="n">dmo</span> <span class="o">=</span> <span class="nn">Dmo</span><span class="p">::</span><span class="nf">from_bytecode</span><span class="p">(</span><span class="n">bytecode</span><span class="p">);</span>
+    <span class="n">dmo</span><span class="nf">.build_jit_fn</span><span class="p">();</span>
+
+    <span class="nd">print!</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="k">while</span> <span class="n">dmo</span><span class="nf">.get_is_running</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">dmo</span><span class="nf">.run_jit_fn</span><span class="p">();</span>
+        <span class="nf">sleep</span><span class="p">(</span><span class="nn">Duration</span><span class="p">::</span><span class="nf">from_millis</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span>
+        <span class="n">dmo</span><span class="nf">.add_to_time</span><span class="p">(</span><span class="mf">0.01</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">print!</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+<p>And the YAML:</p>
 
 <pre class="highlight yaml"><code><span class="c1"># examples/fish-demo.yml</span>
 
@@ -97,7 +127,7 @@ cargo run --example fish-jit
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child active'><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child active'><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>
@@ -146,7 +176,7 @@ cargo run --example fish-jit
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
     <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
-    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-36083dbf.js"></script>
 
     <script>
      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

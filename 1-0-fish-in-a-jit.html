@@ -52,12 +52,16 @@
 
 <p><img src="/images/fish-jit-260d50b1.gif" alt="fish in a jit" /></p>
 
+<p><img src="/images/fish-in-a-jit-diagram_w780-b92cf640.jpg" alt="fish in a jit diagram" /></p>
+
+<!-- TODO add hand drawn diagram -->
+
 <h2 id="sections">Sections</h2>
 
 <ul>
   <li><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li>
   <li><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li>
-  <li><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li>
+  <li><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li>
   <li><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li>
   <li><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li>
 </ul>
@@ -84,8 +88,8 @@ anywhere:</p>
 
 <p>A function is an area of memory, where the bytes are CPU instructions. To design
 graphics in real-time, while it is running real-time, we ask the OS for a piece
-of memory, we put bytes there in hex like <code>48 83 EC 08</code> and tell the OS to
-execute whatever it finds on that memory address.</p>
+of memory, we put bytes there in hex like <code>48 83 EC 08</code> (which is <code>sub rsp, 8</code>
+in asm) and tell the OS to execute whatever it finds on that memory address.</p>
 
 <p>The feedback is that it either works, or segfaults.</p>
 
@@ -124,11 +128,12 @@ remembered to put one in.</p>
 
 <h2 id="compile-and-run">Compile and Run</h2>
 
-<p>We are going to be using Rust from the <strong>nightly</strong> channel.</p>
+<p>This requires <strong>nightly</strong> Rust, last time I checked <code>7ac979d8c 2017-08-16</code>
+worked.</p>
 
 <p><a href="https://www.rust-lang.org/en-US/other-installers.html">Install Rust nighly</a> if you haven’t, on Linux and Mac it is simply:</p>
 
-<pre class="highlight plaintext"><code>curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+<pre class="highlight shell"><code>curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 </code></pre>
 <p>On Windows, find the link on the above page for <strong>rustup-init.exe</strong>, download,
 run, and in the text dialog select the <strong>nightly</strong> channel to install.</p>
@@ -139,6 +144,16 @@ chapter:</p>
 <pre class="highlight plaintext"><code>git clone https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit
 cd fish-in-a-jit
 cargo run --example fish-jit
+</code></pre>
+<p>This is a simple enough project to compile in the future too, but if you have to
+compile it on a particular Rust version:</p>
+
+<pre class="highlight shell"><code>rustup install nightly-2017-08-16
+rustup default nightly-2017-08-16-x86_64-unknown-linux-gnu
+</code></pre>
+<p>Then run the examples:</p>
+
+<pre class="highlight shell"><code>cargo run --example fish-jit
 </code></pre>
             </div>
             <nav class="main-content-nav clearfix" role="navigation">
@@ -156,7 +171,7 @@ cargo run --example fish-jit
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child active'><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child active'><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>
@@ -205,7 +220,7 @@ cargo run --example fish-jit
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
     <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
-    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-36083dbf.js"></script>
 
     <script>
      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

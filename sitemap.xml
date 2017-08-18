@@ -6,6 +6,10 @@
       <priority>0.5</priority>
     </url>
     <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/1-3-jit.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/</loc>
       <priority>0.5</priority>
     </url>
@@ -34,6 +38,10 @@
       <priority>0.5</priority>
     </url>
     <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-08-17-refactoring-the-jit.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html</loc>
       <priority>0.5</priority>
     </url>
@@ -47,10 +55,6 @@
     </url>
     <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/1-5-ascii-fish-example.html</loc>
-      <priority>0.5</priority>
-    </url>
-    <url>
-      <loc>https://make-a-demo-tool-in-rust.github.io/1-3-jit-rs.html</loc>
       <priority>0.5</priority>
     </url>
 </urlset>

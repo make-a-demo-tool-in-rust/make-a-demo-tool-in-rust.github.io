@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Introduction</title>
+    <title>Refactoring the JIT</title>
 
     <!-- Styles and fonts -->
     <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
@@ -23,7 +23,7 @@
     <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
   </head>
 
-  <body class="x0-0-introduction epsilon">
+  <body class="updates updates_2017-08-17-refactoring-the-jit epsilon">
     <div class="page-wrapper">
 
       <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
@@ -40,51 +40,20 @@
 
           <section class="main-content" role="main">
             <div class="main-content-source">
-              <h1 id="introduction">Introduction</h1>
+              <h1 id="refactoring-the-jit">Refactoring the JIT</h1>
 
-<p>The inspiration for the tech comes from the demo tool of the <a href="http://www.pouet.net/groups.php?which=12638">Logicoma group</a>,
-<em>Demotivation</em>. <a href="https://github.com/yupferris">Ferris</a> did excellent streams on how the tool works
-(<a href="https://www.youtube.com/watch?v=p9Obe-Xg35o">Ep.002 stream</a> and <a href="https://github.com/yupferris/ferris-makes-demos-notes/blob/master/ep-002-demotivation.md">notes</a>), and breaking down the
-64k demo <a href="http://www.pouet.net/prod.php?which=68375">Elysian</a> produced in the tool (<a href="https://www.youtube.com/watch?v=DcsesTY6AxI">Ep.003 stream</a>
-and <a href="https://github.com/yupferris/ferris-makes-demos-notes/blob/master/ep-003-elysian-breakdown.md">notes</a>).</p>
+<p>Updated the <a href="https://make-a-demo-tool-in-rust.github.io/1-0-fish-in-a-jit.html">Fish in a JIT</a> chapter and <a href="https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit">code</a> with some refactoring ideas.</p>
 
-<h2 id="motivation-for-a-tool">Motivation for a Tool</h2>
+<p>Mostly about only using <code>sysv64</code> ABI and making <code>JitMemory</code> private to avoid
+having both a <code>JitMemory</code> and <code>JitFn</code> storing (and possibly trying to free) the
+same allocated memory address.</p>
 
-<p>A large number of steps are involved in producing even simple graphics:
-typically you load or generate content, move a camera around while calculating
-matrices and variables for the scene, render the scene to a framebuffer, use
-that framebuffer as a texture for post-processing and so on.</p>
-
-<p>This is organized in the CPU code, and if you know what is going to happen
-already, you can design and code these steps, then compile and run.</p>
-
-<p>Demoscene graphics is very inventive though, you just make it up as you go
-along, and that’s more fun too – not to mention that you will probably change
-between rendering pipelines from one scene to the next in the same demo.</p>
-
-<p>Compiling just the see the result…</p>
-
-<p><img src="/images/waiting-for-the-build-cf34322f.jpg" alt="Waiting for the build" /></p>
-
-<p>(“Waiting for the build”, Juan Manuel Blanes, 1875 / 78, <a href="http://classicprogrammerpaintings.com/post/142841291544/waiting-for-the-build-also-known-as-scala">classicprogrammerpaintings.com</a>)</p>
-
-<p>Instead of hard-coding the sequence of these operations, it is better to
-generate some code which will produce the graphics in real-time, and tune the
-code while you are looking at the result as the code is running.</p>
-
-<p>Just-In-Time compilation (JIT) is one way to do this.</p>
-
-<p>There is one function which we call at every frame, this does all the
-drawing. This function is assembled in the memory at runtime from a custom
-byte-code sequence which describes the operations to execute. This way, as soon
-as we change the byte-code, the function can be re-built in the memory and at
-the very next frame it can draw something completely different.</p>
 
             </div>
             <nav class="main-content-nav clearfix" role="navigation">
               <ul>
-                <li><a href="/" class="previous">Previous</a></li>
-                <li><a href="/1-0-fish-in-a-jit.html" class="next">Next</a></li>
+                <li></li>
+                <li></li>
               </ul>
             </nav>
           </section>
@@ -96,7 +65,7 @@ the very next frame it can draw something completely different.</p>
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child active'><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>

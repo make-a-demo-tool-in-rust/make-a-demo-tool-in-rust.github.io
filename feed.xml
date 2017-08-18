@@ -4,16 +4,35 @@
   <id>https://make-a-demo-tool-in-rust.github.io</id>
   <link href="https://make-a-demo-tool-in-rust.github.io"/>
   <link href="https://make-a-demo-tool-in-rust.github.io/feed.xml" rel="self"/>
-  <updated>2017-04-27T01:00:00+01:00</updated>
+  <updated>2017-08-17T01:00:00+01:00</updated>
   <author>
     <name>etd</name>
   </author>
+  <entry>
+    <title>Refactoring the JIT</title>
+    <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-08-17-refactoring-the-jit.html"/>
+    <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-08-17-refactoring-the-jit.html</id>
+    <published>2017-08-17T01:00:00+01:00</published>
+    <updated>2017-08-17T18:29:23+01:00</updated>
+    <author>
+      <name>etd</name>
+    </author>
+    <content type="html">&lt;h1 id="refactoring-the-jit"&gt;Refactoring the JIT&lt;/h1&gt;
+
+&lt;p&gt;Updated the &lt;a href="https://make-a-demo-tool-in-rust.github.io/1-0-fish-in-a-jit.html"&gt;Fish in a JIT&lt;/a&gt; chapter and &lt;a href="https://github.com/make-a-demo-tool-in-rust/fish-in-a-jit"&gt;code&lt;/a&gt; with some refactoring ideas.&lt;/p&gt;
+
+&lt;p&gt;Mostly about only using &lt;code&gt;sysv64&lt;/code&gt; ABI and making &lt;code&gt;JitMemory&lt;/code&gt; private to avoid
+having both a &lt;code&gt;JitMemory&lt;/code&gt; and &lt;code&gt;JitFn&lt;/code&gt; storing (and possibly trying to free) the
+same allocated memory address.&lt;/p&gt;
+
+</content>
+  </entry>
   <entry>
     <title>Working on Linux, Mac and Windows</title>
     <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html"/>
     <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html</id>
     <published>2017-04-27T01:00:00+01:00</published>
-    <updated>2017-04-27T17:18:54+01:00</updated>
+    <updated>2017-08-17T18:30:09+01:00</updated>
     <author>
       <name>etd</name>
     </author>
@@ -33,7 +52,7 @@ cargo run --example fish-jit
     <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html"/>
     <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-21-first-chapter.html</id>
     <published>2017-04-21T01:00:00+01:00</published>
-    <updated>2017-04-22T16:41:59+01:00</updated>
+    <updated>2017-08-17T18:30:22+01:00</updated>
     <author>
       <name>etd</name>
     </author>

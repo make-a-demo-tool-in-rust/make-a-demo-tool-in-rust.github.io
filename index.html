@@ -50,8 +50,13 @@
   </article>
   <article>
     <a href='/1-0-fish-in-a-jit.html'>1. Fish in a JIT</a>
-    <p>Make a small thing with a JIT function that prints oneliner animated ASCII graphics.</p>
-    <img alt='fish in a jit' src='/images/fish-jit-f100-3885964e.jpg'>
+    <p>Writing a small Just-In-Time (JIT) compilation library and using it to print oneliner animated ASCII graphics.</p>
+    <p>
+      <img alt='fish in a jit' src='/images/fish-jit-f100-3885964e.jpg' style='padding: 10px; border: 1px solid #c4c4c4;'>
+    </p>
+    <p>
+      <img alt='fish in a jit diagram' src='/images/fish-in-a-jit-diagram_crop-c79df82e.jpg' style='padding: 10px; border: 1px solid #c4c4c4;'>
+    </p>
   </article>
   <article>
     <p>Plans for the next chapters:</p>
@@ -88,6 +93,12 @@
 <section>
   <article>
     <span style='padding-right: 0.5em;'>
+      2017-08-17
+    </span>
+    <a href='/updates/2017-08-17-refactoring-the-jit.html'>Refactoring the JIT</a>
+  </article>
+  <article>
+    <span style='padding-right: 0.5em;'>
       2017-04-27
     </span>
     <a href='/updates/2017-04-27-linux-mac-windows.html'>Working on Linux, Mac and Windows</a>
@@ -116,7 +127,7 @@
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child active'><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child active'><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>
@@ -165,7 +176,7 @@
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
     <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
-    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-36083dbf.js"></script>
 
     <script>
      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

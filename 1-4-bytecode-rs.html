@@ -66,11 +66,13 @@ of it when deserializing from the bytecode.</p>
         <span class="c">// - [u8]: sprite</span>
         <span class="c">// ...</span>
 
-        <span class="n">res</span><span class="nf">.push</span><span class="p">(</span><span class="k">self</span><span class="py">.context.sprites</span><span class="nf">.len</span><span class="p">()</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
+        <span class="k">let</span> <span class="n">sprites</span> <span class="o">=</span> <span class="k">self</span><span class="nf">.get_sprites</span><span class="p">();</span>
+
+        <span class="n">res</span><span class="nf">.push</span><span class="p">(</span><span class="n">sprites</span><span class="nf">.len</span><span class="p">()</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
 
         <span class="c">// ASCII sprites can be unicode UTF-32, so expect the 4-byte char</span>
         <span class="c">// instead of u8</span>
-        <span class="k">for</span> <span class="n">sprite</span> <span class="n">in</span> <span class="k">self</span><span class="py">.context.sprites</span><span class="nf">.iter</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="n">sprite</span> <span class="n">in</span> <span class="n">sprites</span><span class="nf">.iter</span><span class="p">()</span> <span class="p">{</span>
             <span class="c">// length in chars, not in bytes</span>
             <span class="n">res</span><span class="nf">.push</span><span class="p">(</span><span class="n">sprite</span><span class="nf">.chars</span><span class="p">()</span><span class="nf">.count</span><span class="p">()</span> <span class="k">as</span> <span class="nb">u8</span><span class="p">);</span>
 
@@ -144,17 +146,14 @@ float.</p>
         
         <span class="c">// ... and on and on until we reconstructed everything.</span>
         
-        <span class="n">Dmo</span> <span class="p">{</span>
-            <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="p">,</span>
-            <span class="n">operators</span><span class="p">:</span> <span class="n">operators</span><span class="p">,</span>
-        <span class="p">}</span>
+        <span class="nn">Dmo</span><span class="p">::</span><span class="nf">new</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">operators</span><span class="p">)</span>
     <span class="p">}</span> 
 <span class="p">}</span>
 </code></pre>
             </div>
             <nav class="main-content-nav clearfix" role="navigation">
               <ul>
-                <li><a href="/1-3-jit-rs.html" class="previous">Previous</a></li>
+                <li><a href="/1-3-jit.html" class="previous">Previous</a></li>
                 <li><a href="/1-5-ascii-fish-example.html" class="next">Next</a></li>
               </ul>
             </nav>
@@ -167,7 +166,7 @@ float.</p>
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit-rs.html">1.3 jit.rs - A hand-made function</a></li><li class='child active'><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child active'><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>
@@ -216,7 +215,7 @@ float.</p>
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
     <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
-    <script src="/themes/epsilon/javascripts/epsilon-5a4259e9.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-36083dbf.js"></script>
 
     <script>
      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
