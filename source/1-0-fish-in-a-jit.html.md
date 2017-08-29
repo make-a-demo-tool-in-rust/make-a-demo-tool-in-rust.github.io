@@ -25,10 +25,6 @@ diagram_image_alt: "fish in a jit diagram"
 
 ![fish in a jit diagram](/images/fish-in-a-jit-diagram_w780.jpg)
 
-{::comment}
-TODO add hand drawn diagram
-{:/comment}
-
 ## Sections
 
 - [1.1 dmo.rs - State and content](/1-1-dmo-rs.html)
