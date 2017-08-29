@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>2.2 rocket_sync lib - Variable values at a given time</title>
+
+    <!-- Styles and fonts -->
+    <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
+    <link href="/themes/epsilon/stylesheets/syntax-e33ab3a1.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Lato:100,300,400,700|Noticia+Text:400,400italic,700,700italic&subset=latin,latin-ext,vietnamese' rel='stylesheet' type='text/css'>
+
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <script src="/themes/epsilon/javascripts/modernizr-16671e9f.js"></script>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
+  </head>
+
+  <body class="x2-2-rocket-sync-lib epsilon">
+    <div class="page-wrapper">
+
+      <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
+      <header class="page-header" role="banner">
+<a href="/" class="invisilink">            <span class="book-title">Make a Demo Tool in Rust</span>
+</a>        <span class="book-author">by etd</span>
+      </header>
+
+        <div class="content-wrapper clearfix">
+
+          <!--[if lt IE 7]>
+              <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+          <![endif]-->
+
+          <section class="main-content" role="main">
+            <div class="main-content-source">
+              <h1 id="rocketsync-lib---variable-values-at-a-given-time">2.2 rocket_sync lib - Variable values at a given time</h1>
+
+<h2 id="summary">Summary</h2>
+
+<p>The sync lib works standalone, the Rocket editor is not needed.</p>
+
+<p>Its purpose is to represent the tracks and key values, and provide the
+interpreted value of a given track at the current time.</p>
+
+<p>It is a <code>#![no_std]</code> crate so that it can be included in a replay utility which
+wants to avoid the Rust standard lib for a small executable binary size.</p>
+
+<h2 id="code-overview">Code Overview</h2>
+
+<p>It is about ~200 sloc, see <a href="https://github.com/make-a-demo-tool-in-rust/rocket_sync/blob/master/src/lib.rs">lib.rs</a>.</p>
+
+<p>The main interface is via <code>SyncDevice</code> which really just represents the data
+needed to keep the sync moving.</p>
+
+<pre class="highlight rust"><code><span class="k">pub</span> <span class="k">struct</span> <span class="n">SyncDevice</span> <span class="p">{</span>
+    <span class="c">/// sync tracks (the vertical columns in the editor)</span>
+    <span class="k">pub</span> <span class="n">tracks</span><span class="p">:</span> <span class="n">SmallVec</span><span class="o">&lt;</span><span class="p">[</span><span class="n">SyncTrack</span><span class="p">;</span> <span class="mi">64</span><span class="p">]</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="c">/// rows per beat</span>
+    <span class="k">pub</span> <span class="n">rpb</span><span class="p">:</span> <span class="nb">u8</span><span class="p">,</span>
+    <span class="c">/// beats per minute</span>
+    <span class="k">pub</span> <span class="n">bpm</span><span class="p">:</span> <span class="nb">f64</span><span class="p">,</span>
+    <span class="c">/// rows per second</span>
+    <span class="k">pub</span> <span class="n">rps</span><span class="p">:</span> <span class="nb">f64</span><span class="p">,</span>
+    <span class="k">pub</span> <span class="n">is_paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="c">/// current row</span>
+    <span class="k">pub</span> <span class="n">row</span><span class="p">:</span> <span class="nb">u32</span><span class="p">,</span>
+    <span class="c">/// current time in milliseconds</span>
+    <span class="k">pub</span> <span class="n">time</span><span class="p">:</span> <span class="nb">u32</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre>
+<p>Then there is <code>SyncTrack</code> which holds a vector of <code>TrackKey</code>. A key has <code>row</code>,
+<code>value</code> and <code>key_type</code> (interpolation type).</p>
+
+<p>The whole thing will be ticking at the same speed as in the Rocket Editor
+because the interpolation types are the same.</p>
+
+<pre class="highlight rust"><code><span class="k">impl</span> <span class="n">SyncTrack</span> <span class="p">{</span>
+    <span class="k">pub</span> <span class="k">fn</span> <span class="nf">value_at</span><span class="p">(</span><span class="o">&amp;</span><span class="k">self</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">u32</span><span class="p">)</span> <span class="k">-&gt;</span> <span class="nb">f64</span> <span class="p">{</span>
+        <span class="c">// ...</span>
+        <span class="k">match</span> <span class="n">cur_key</span><span class="py">.key_type</span> <span class="p">{</span>
+            <span class="n">Step</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="n">a</span><span class="p">,</span>
+
+            <span class="n">Linear</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">t</span><span class="p">,</span>
+
+            <span class="n">Smooth</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span><span class="o">*</span><span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="err">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">t</span><span class="p">)),</span>
+
+            <span class="n">Ramp</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">t</span><span class="o">*</span><span class="n">t</span><span class="p">,</span>
+
+            <span class="n">NOOP</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="c">// ...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>And now let’s see some graphics moving!</p>
+
+
+            </div>
+            <nav class="main-content-nav clearfix" role="navigation">
+              <ul>
+                <li><a href="/2-1-rocket-client-lib.html" class="previous">Previous</a></li>
+                <li><a href="/2-3-rocket-example.html" class="next">Next</a></li>
+              </ul>
+            </nav>
+          </section>
+
+          <aside id="sidr" class="aside-content" role="complementary">
+            <div class="aside-wrapper">
+
+              <div class="block table-of-contents">
+                <h3>Table of contents</h3>
+                <nav role="navigation">
+                  <ul>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/2-0-lets-try-0-5-to-1-5.html">2. Let's try 0.5 to 1.5</a></li><li class='child '><a href="/2-1-rocket-client-lib.html">2.1 rocket_client lib - Connecting to a Rocket Editor</a></li><li class='child active'><a href="/2-2-rocket-sync-lib.html">2.2 rocket_sync lib - Variable values at a given time</a></li><li class='child '><a href="/2-3-rocket-example.html">2.3 rocket_example - An example project</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                  </ul>
+                </nav>
+              </div>
+
+              <div class="block open-source">
+                <h3>Sources</h3>
+                <p>
+                    Get the
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust.github.io" target="_blank">source of this book</a>
+                    and
+                    <a href="https://github.com/make-a-demo-tool-in-rust/make-a-demo-tool-in-rust-code" target="_blank">all the code</a>
+                    from Github.
+                </p>
+              </div>
+
+              <!--
+              <div class="block downloads">
+                <h3>Downloads</h3>
+                <p>Download this book in
+                    <a href="#">PDF</a>, <a href="#">mobi</a>, and <a href="#">epub</a>
+                  form for free.
+                </p>
+              </div>
+              -->
+
+              <!--
+              <div class="block license">
+                <h3>License</h3>
+                <p>This book is licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/">do-whatever-you-want</a> license.</p>
+              </div>
+              -->
+
+            </div><!-- end aside-wrapper -->
+          </aside>
+
+        </div><!-- end content-wrapper -->
+
+      <footer class="page-footer">
+        <div class="footer-wrapper">
+        </div><!-- end footer-wrapper -->
+      </footer>
+
+    </div><!-- end page-wrapper -->
+
+    <!-- include scripts just before the close of the body tag -->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/themes/epsilon/javascripts/jquery.sidr.min-9c1c3fff.js"></script>
+    <script src="/themes/epsilon/javascripts/anchor.min-9893b39a.js"></script>
+    <script src="/themes/epsilon/javascripts/epsilon-36083dbf.js"></script>
+
+    <script>
+     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+     })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+     ga('create', 'UA-3557338-11', 'auto');
+     ga('send', 'pageview');
+    </script>
+  </body>
+</html>

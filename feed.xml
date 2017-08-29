@@ -4,10 +4,25 @@
   <id>https://make-a-demo-tool-in-rust.github.io</id>
   <link href="https://make-a-demo-tool-in-rust.github.io"/>
   <link href="https://make-a-demo-tool-in-rust.github.io/feed.xml" rel="self"/>
-  <updated>2017-08-17T01:00:00+01:00</updated>
+  <updated>2017-08-29T01:00:00+01:00</updated>
   <author>
     <name>etd</name>
   </author>
+  <entry>
+    <title>Rocket Editor client and example</title>
+    <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-08-29-rocket-editor-client-and-example.html"/>
+    <id>https://make-a-demo-tool-in-rust.github.io/updates/2017-08-29-rocket-editor-client-and-example.html</id>
+    <published>2017-08-29T01:00:00+01:00</published>
+    <updated>2017-08-29T08:46:47+01:00</updated>
+    <author>
+      <name>etd</name>
+    </author>
+    <content type="html">&lt;h1 id="rocket-editor-client-and-example"&gt;Rocket Editor client and example&lt;/h1&gt;
+
+&lt;p&gt;Added a &lt;a href="https://make-a-demo-tool-in-rust.github.io/2-0-lets-try-0-5-to-1-5.html"&gt;client implementation&lt;/a&gt; for the GNU Rocket Editor and example project.&lt;/p&gt;
+
+</content>
+  </entry>
   <entry>
     <title>Refactoring the JIT</title>
     <link rel="alternate" href="https://make-a-demo-tool-in-rust.github.io/updates/2017-08-17-refactoring-the-jit.html"/>

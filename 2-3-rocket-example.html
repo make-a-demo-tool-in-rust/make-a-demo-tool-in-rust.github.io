@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Assembly Tutorial</title>
+    <title>2.3 rocket_example - An example project</title>
 
     <!-- Styles and fonts -->
     <link href="/themes/epsilon/stylesheets/epsilon-8f0057ad.css" rel="stylesheet" />
@@ -23,7 +23,7 @@
     <link rel="alternate" type="application/rss+xml" title="RSS Feed - Updates" href="https://make-a-demo-tool-in-rust.github.io/feed.xml">
   </head>
 
-  <body class="assembly-tutorial epsilon">
+  <body class="x2-3-rocket-example epsilon">
     <div class="page-wrapper">
 
       <a id="menu-toggle" class="menu-toggle" href="#sidr"><span class="bitcon-list"></span><span class="menu-toggle-text">Toggle Menu</span></a>
@@ -40,80 +40,67 @@
 
           <section class="main-content" role="main">
             <div class="main-content-source">
-              <!-- 
-- [assembly.org](~/org/notes/assembly.org)
- -->
+              <h1 id="rocketexample---an-example-project">2.3 rocket_example - An example project</h1>
 
-<h1 id="assembly-tutorial">Assembly Tutorial</h1>
+<p>The code is in the <a href="https://github.com/make-a-demo-tool-in-rust/rocket_example">rocket_example</a> repo.</p>
 
-<p>This will be a basic assembly tutorial focusing on how to assemble the JIT
-function <code>x86</code> instructions.</p>
+<p><img src="/images/rocket-example-demo-d9045ce7.gif" alt="rocket example demo" /></p>
 
-<p>Until the fortunate arrival of that glorious day, I recommend these excellent tutorials:</p>
+<p>In brief it does the following:</p>
 
 <ul>
-  <li><a href="https://www.nayuki.io/page/a-fundamental-introduction-to-x86-assembly-programming">A fundamental introduction to x86 assembly programming</a></li>
-  <li><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">Guide to x86 Assembly</a>, and <a href="http://flint.cs.yale.edu/cs421/papers/x86-asm/asm.html">the same with AT&amp;T syntax</a></li>
-  <li><a href="https://0xax.github.io/asm_1/">Say hello to x86_64 Assembly</a></li>
-  <li><a href="http://cs.lmu.edu/~ray/notes/gasexamples/">GNU Assembler Examples</a></li>
-  <li><a href="http://eli.thegreenplace.net/2011/02/04/where-the-top-of-the-stack-is-on-x86/">Where the top of the stack is on x86</a></li>
-  <li><a href="http://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64">Stack frame layout on x86-64</a></li>
+  <li>open a window with a Quad (two triangles) to draw on</li>
+  <li>compile the shaders to a program</li>
+  <li>connect to Rocket and send the track names</li>
+  <li>start a draw loop. In every iteration:
+    <ul>
+      <li>see if Rocket has data to send</li>
+      <li>send the shader uniform variables with values calculated by the sync lib</li>
+      <li>draw</li>
+      <li>sleep</li>
+    </ul>
+  </li>
 </ul>
 
-<h2 id="notes">Notes</h2>
+<p>To get this going on your machine, clone the example repo and compile. Enable
+the <code>env_logger</code> messages, it can be useful.</p>
 
-<ul>
-  <li><a href="#passing-arguments">Passing arguments</a></li>
-  <li><a href="#function-call-abis">Function call ABIs</a></li>
-  <li><a href="#assembler-tools">Assembler Tools</a></li>
-  <li><a href="#debuggers">Debuggers</a></li>
-</ul>
-
-<h2 id="passing-arguments">Passing arguments</h2>
-
-<p>In 64-bit x86 code, you pass the first few parameters in registers.</p>
-
-<p>Exactly which registers you use depends on the CPU arch and how the OS uses it.</p>
-
-<p>On x86-64 Linux the first six parameters go into:</p>
-
-<pre class="highlight plaintext"><code>rdi, rsi, rdx, rcx, r8, r9
+<pre class="highlight shell"><code>git clone https://github.com/make-a-demo-tool-in-rust/rocket_example
+<span class="nb">cd </span>rocket_example
+<span class="nv">RUST_LOG</span><span class="o">=</span>rocket_example,rocket_sync cargo run
 </code></pre>
-<p>On Windows x64, the first four parameters go into:</p>
+<p>At this point the Rocket editor is not running, and we are not parsing the
+<code>tracks.rocket</code> in standalone, so shader variable values will be 0.</p>
 
-<pre class="highlight plaintext"><code>rcx, rdx, r8, r9
+<p>But that already shows something to see:</p>
+
+<p><img src="/images/rocket-example-start-74fd079e.png" alt="rocket example start" /></p>
+
+<p>After installing <a href="https://github.com/emoon/rocket">Rocket</a>, let’s suppose you copied the compiled binary to
+<code>~/lib/rocket/rocket_editor</code>.</p>
+
+<p>Start it, then press <code>Ctrl + O</code> to open a file. It will not show a dialog, but
+waits for the input in the terminal.</p>
+
+<pre class="highlight shell"><code><span class="c"># current folder is ./rocket_example</span>
+<span class="c"># start Rocket</span>
+~/lib/rocket/rocket_editor
+<span class="c"># press Ctrl + O in Rocket</span>
+<span class="c"># enter the path to open and press RET:</span>
+./data/tracks.rocket
 </code></pre>
-<p>On 32-bit x86 systems parameters are passed on the stack.</p>
+<p>Now the track data should be loaded. Rocket keeps a recent file list in
+<code>.rocket-recents.txt</code>, so next time we only need to press <code>Ctrl + 1</code> to open the
+same file.</p>
 
-<h2 id="function-call-abis">Function call ABIs</h2>
-
-<p>x86-32 Windows uses various ABIs for function calls. Win32 uses “stdcall” as the
-default, function arguments are passed on the stack in reverse order.</p>
-
-<p>x86-32 Linux can use “stdcall”.</p>
-
-<p>x86-64 Linux uses “System V ABI” for function calls. Pass arguments in registers.</p>
-
-<h2 id="assembler-tools">Assembler Tools</h2>
-
-<ul>
-  <li><a href="http://www.nasm.us/doc/nasmdo11.html">nasm</a></li>
-  <li><a href="https://en.wikipedia.org/wiki/GNU_Assembler">gas, GNU Assembler</a></li>
-  <li><a href="https://defuse.ca/online-x86-assembler.htm">Online x86 and x64 Intel Instruction Assembler</a></li>
-</ul>
-
-<h2 id="debuggers">Debuggers</h2>
-
-<ul>
-  <li>gdb (Linux)</li>
-  <li>hopper (Mac)</li>
-</ul>
+<p>In Rocket, the <code>SPC</code> key is play / pause, this should start the animation as
+above.</p>
 
             </div>
             <nav class="main-content-nav clearfix" role="navigation">
               <ul>
-                <li><a href="/2-3-rocket-example.html" class="previous">Previous</a></li>
-                <li><a href="/feed.xml" class="next">Next</a></li>
+                <li><a href="/2-2-rocket-sync-lib.html" class="previous">Previous</a></li>
+                <li><a href="/assembly-tutorial.html" class="next">Next</a></li>
               </ul>
             </nav>
           </section>
@@ -125,7 +112,7 @@ default, function arguments are passed on the stack in reverse order.</p>
                 <h3>Table of contents</h3>
                 <nav role="navigation">
                   <ul>
-                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/2-0-lets-try-0-5-to-1-5.html">2. Let's try 0.5 to 1.5</a></li><li class='child '><a href="/2-1-rocket-client-lib.html">2.1 rocket_client lib - Connecting to a Rocket Editor</a></li><li class='child '><a href="/2-2-rocket-sync-lib.html">2.2 rocket_sync lib - Variable values at a given time</a></li><li class='child '><a href="/2-3-rocket-example.html">2.3 rocket_example - An example project</a></li><li class='child active'><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
+                    <li class='child '><a href="/">Home</a></li><li class='child '><a href="/0-0-introduction.html">Introduction</a></li><li class='child '><a href="/1-0-fish-in-a-jit.html">1. Fish in a JIT</a></li><li class='child '><a href="/1-1-dmo-rs.html">1.1 dmo.rs - State and content</a></li><li class='child '><a href="/1-2-ops-rs.html">1.2 ops.rs - Operators</a></li><li class='child '><a href="/1-3-jit.html">1.3 JIT - A hand-made function</a></li><li class='child '><a href="/1-4-bytecode-rs.html">1.4 bytecode.rs - Blob</a></li><li class='child '><a href="/1-5-ascii-fish-example.html">1.5 ASCII fish example</a></li><li class='child '><a href="/2-0-lets-try-0-5-to-1-5.html">2. Let's try 0.5 to 1.5</a></li><li class='child '><a href="/2-1-rocket-client-lib.html">2.1 rocket_client lib - Connecting to a Rocket Editor</a></li><li class='child '><a href="/2-2-rocket-sync-lib.html">2.2 rocket_sync lib - Variable values at a given time</a></li><li class='child active'><a href="/2-3-rocket-example.html">2.3 rocket_example - An example project</a></li><li class='child '><a href="/assembly-tutorial.html">Assembly Tutorial</a></li><li class='child '><a href="/reference-docs.html">Reference Docs</a></li>
                   </ul>
                 </nav>
               </div>

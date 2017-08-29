@@ -34,6 +34,18 @@
       <priority>0.5</priority>
     </url>
     <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/2-1-rocket-client-lib.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/2-0-lets-try-0-5-to-1-5.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/2-3-rocket-example.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-04-27-linux-mac-windows.html</loc>
       <priority>0.5</priority>
     </url>
@@ -46,6 +58,10 @@
       <priority>0.5</priority>
     </url>
     <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/updates/2017-08-29-rocket-editor-client-and-example.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/1-2-ops-rs.html</loc>
       <priority>0.5</priority>
     </url>
@@ -55,6 +71,10 @@
     </url>
     <url>
       <loc>https://make-a-demo-tool-in-rust.github.io/1-5-ascii-fish-example.html</loc>
+      <priority>0.5</priority>
+    </url>
+    <url>
+      <loc>https://make-a-demo-tool-in-rust.github.io/2-2-rocket-sync-lib.html</loc>
       <priority>0.5</priority>
     </url>
 </urlset>
